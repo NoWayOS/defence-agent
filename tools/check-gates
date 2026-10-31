@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""Check that GATES.md lists every step of each repository's make ci (gate B22).
+
+Usage:
+    check-gates --gates GATES.md NAME=DIR [NAME=DIR ...]
+    check-gates --list NAME=DIR [NAME=DIR ...]
+
+Each repository's make ci steps are read from its Makefiles as text: nothing
+is run, not even make. They are the prerequisites of its `ci-local` rule or,
+where `make ci` is `container-ci` (NoWayOS), the `*_steps` variables that
+container-ci's recipe runs, from the make fragment the Makefile includes.
+A repository whose steps cannot be read is an error, so a change to how its
+make ci is written cannot pass by listing nothing.
+
+GATES.md's table under "Every make ci step" lists each repository's steps in
+order, with the gates each runs. The check fails naming every step a make ci
+runs that the table lacks, every step the table lists that no make ci runs,
+steps listed out of order, a step with no gate or with a gate GATES.md does
+not define, and a repository the table names that was not given.
+
+--list prints each repository's steps, one "NAME STEP" line each.
+
+Exit status: 0 they agree; 1 they differ; 2 usage or input error.
+Python 3.11 or later, standard library only.
+"""
+
+import argparse
+import os
+import re
+import sys
+
+EXIT_PASS = 0
+EXIT_FAIL = 1
+EXIT_ERROR = 2
+
+STEPS_HEADING = re.compile(r"^#+\s+Every make ci step\s*$")
+GATE_ID = re.compile(r"^[A-Z]{1,2}[0-9]+$")
+VARIABLE = re.compile(r"^([A-Za-z0-9_.-]+)\s*(:=|::=|\?=|\+=|=)\s*(.*)$")
+RULE = re.compile(r"^([^:=#\t][^:=#]*?)\s*:(?![:=])\s*(.*)$")
+INCLUDE = re.compile(r"^-?include\s+(.+)$")
+REFERENCE = re.compile(r"\$[({]([A-Za-z0-9_.-]+)[)}]")
+
+
+class InputError(Exception):
+    pass
+
+
+class Makefile:
+    """The rules, recipes and simple variables of a Makefile and the files it
+    includes from inside its repository, read as text."""
+
+    def __init__(self):
+        self.prerequisites = {}  # target -> [prerequisite words], every rule's
+        self.recipes = {}  # target -> [recipe lines]
+        self.variables = {}  # name -> value
+
+    def read(self, path, repo):
+        try:
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+        except OSError as error:
+            raise InputError(f"cannot read {path}: {error.strerror}") from None
+        current = None
+        in_define = False
+        for line in logical_lines(text):
+            if in_define:
+                in_define = line.strip() != "endef"
+                continue
+            if line.startswith("\t"):
+                if current:
+                    for target in current:
+                        self.recipes.setdefault(target, []).append(line.strip())
+                continue
+            line = strip_comment(line).strip()
+            if not line:
+                continue
+            if line.startswith("define ") or line == "define":
+                in_define, current = True, None
+                continue
+            include = INCLUDE.match(line)
+            if include:
+                current = None
+                # make finds an included file from where it runs: the repository.
+                for name in include.group(1).split():
+                    self.include(repo, name, repo)
+                continue
+            variable = VARIABLE.match(re.sub(r"^(?:export|override)\s+", "", line))
+            if variable:
+                current = None
+                name, op, value = variable.groups()
+                if op == "+=":
+                    value = (self.variables.get(name, "") + " " + value).strip()
+                elif op == "?=" and name in self.variables:
+                    continue
+                self.variables[name] = value
+                continue
+            rule = RULE.match(line)
+            if rule:
+                targets = rule.group(1).split()
+                rest = rule.group(2)
+                if re.search(r"(:=|\?=|\+=|=)", rest):
+                    # A target-specific variable (`ci-local: LOCKED := --locked`).
+                    current = None
+                    continue
+                current = targets
+                for target in targets:
+                    self.prerequisites.setdefault(target, []).extend(rest.split())
+                continue
+            current = None
+
+    def include(self, directory, name, repo):
+        if "$" in name:
+            return
+        path = os.path.normpath(os.path.join(directory, name))
+        inside = os.path.commonpath([os.path.abspath(path), os.path.abspath(repo)]) == os.path.abspath(repo)
+        if inside and os.path.isfile(path):
+            self.read(path, repo)
+
+    def expand(self, text, seen=()):
+        def replace(match):
+            name = match.group(1)
+            if name in seen:
+                raise InputError(f"variable {name} refers to itself")
+            if name not in self.variables:
+                raise InputError(f"variable {name} is not defined where its make ci can be read")
+            return self.expand(self.variables[name], seen + (name,))
+
+        return REFERENCE.sub(replace, text)
+
+
+def logical_lines(text):
+    """Lines with backslash continuations joined, as make reads them."""
+    joined = []
+    pending = ""
+    for raw in text.split("\n"):
+        if raw.endswith("\\"):
+            pending += raw[:-1] + " "
+            continue
+        joined.append(pending + raw)
+        pending = ""
+    if pending:
+        joined.append(pending)
+    return joined
+
+
+def strip_comment(line):
+    index = line.find("#")
+    while index > 0 and line[index - 1] == "\\":
+        index = line.find("#", index + 1)
+    return line if index < 0 else line[:index]
+
+
+def ci_steps(repo):
+    """The steps of the repository's make ci, in order."""
+    makefile_path = os.path.join(repo, "Makefile")
+    if not os.path.isfile(makefile_path):
+        raise InputError(f"{repo}: no Makefile")
+    makefile = Makefile()
+    makefile.read(makefile_path, repo)
+    local = [word for word in makefile.prerequisites.get("ci-local", [])]
+    if local:
+        return dedupe(makefile.expand(" ".join(local)).split())
+    if "container-ci" in makefile.prerequisites.get("ci", []):
+        names = []
+        for line in makefile.recipes.get("container-ci", []):
+            names.extend(name for name in REFERENCE.findall(line) if name.endswith("_steps"))
+        if not names:
+            raise InputError(f"{repo}: container-ci's recipe runs no *_steps variable")
+        steps = []
+        for name in names:
+            steps.extend(makefile.expand(f"$({name})").split())
+        return dedupe(steps)
+    raise InputError(f"{repo}: no ci-local rule with prerequisites, and make ci is not container-ci")
+
+
+def dedupe(words):
+    seen = set()
+    return [w for w in words if not (w in seen or seen.add(w))]
+
+
+def read_gates(path):
+    """GATES.md's defined gate IDs, and its steps table as [(repo, step, [gates], line)]."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().split("\n")
+    except OSError as error:
+        raise InputError(f"cannot read {path}: {error.strerror}") from None
+    defined = set()
+    rows = []
+    in_steps = False
+    table_started = False
+    for number, line in enumerate(lines, start=1):
+        if line.startswith("#"):
+            if in_steps and table_started:
+                in_steps = False
+            if STEPS_HEADING.match(line):
+                in_steps, table_started = True, False
+            continue
+        if not line.startswith("|"):
+            if in_steps and table_started:
+                in_steps = False
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if in_steps:
+            table_started = True
+            if len(cells) != 3 or cells[0] in ("Repo", "") or set(cells[0]) <= set("-: "):
+                continue
+            step = cells[1].strip("`")
+            gates = [g.strip() for g in cells[2].split(",") if g.strip()]
+            rows.append((cells[0], step, gates, number))
+        elif GATE_ID.match(cells[0]):
+            defined.add(cells[0])
+    if not rows:
+        raise InputError(f"{path}: no table under an 'Every make ci step' heading")
+    return defined, rows
+
+
+def check(gates_path, repos):
+    defined, rows = read_gates(gates_path)
+    problems = []
+    listed = {}
+    for repo, step, gates, line in rows:
+        if repo not in repos:
+            problems.append(f"{gates_path}:{line}: names repository {repo!r}, which was not given")
+            continue
+        listed.setdefault(repo, []).append(step)
+        if not gates:
+            problems.append(f"{gates_path}:{line}: {repo} step {step!r} names no gate")
+        for gate in gates:
+            if gate not in defined:
+                problems.append(f"{gates_path}:{line}: {repo} step {step!r} names gate {gate}, which GATES.md does not define")
+    total = 0
+    for repo, directory in repos.items():
+        steps = ci_steps(directory)
+        total += len(steps)
+        table = listed.get(repo, [])
+        for step in steps:
+            if step not in table:
+                problems.append(f"{repo}: make ci runs {step!r}, which GATES.md's 'Every make ci step' table lacks")
+        for step in table:
+            if step not in steps:
+                problems.append(f"{repo}: GATES.md lists {step!r}, which its make ci does not run")
+        common_ci = [s for s in steps if s in table]
+        common_table = [s for s in dedupe(table) if s in steps]
+        if common_ci != common_table:
+            problems.append(f"{repo}: GATES.md lists its steps out of order; make ci runs {' '.join(common_ci)}")
+        if len(table) != len(set(table)):
+            problems.append(f"{repo}: GATES.md lists a step twice")
+    return problems, total
+
+
+def parse_repos(values):
+    repos = {}
+    for value in values:
+        name, sep, directory = value.partition("=")
+        if not sep or not name or not directory:
+            raise InputError(f"{value!r}: give each repository as NAME=DIR")
+        if name in repos:
+            raise InputError(f"{name}: given twice")
+        repos[name] = directory
+    return repos
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--gates", metavar="FILE", help="GATES.md, to check against the repositories' make ci")
+    mode.add_argument("--list", action="store_true", help="print each repository's make ci steps")
+    parser.add_argument("repos", nargs="+", metavar="NAME=DIR", help="a repository and its folder")
+    args = parser.parse_args(argv)
+    try:
+        repos = parse_repos(args.repos)
+        if args.list:
+            for name, directory in repos.items():
+                for step in ci_steps(directory):
+                    print(f"{name} {step}")
+            return EXIT_PASS
+        problems, total = check(args.gates, repos)
+    except InputError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return EXIT_ERROR
+    for problem in problems:
+        print(f"error: {problem}", file=sys.stderr)
+    if problems:
+        print(f"gates-check: FAIL - {len(problems)} problem(s)", file=sys.stderr)
+        return EXIT_FAIL
+    print(f"gates-check: PASS - {total} make ci steps in {len(repos)} repositories, each in {args.gates}")
+    return EXIT_PASS
+
+
+if __name__ == "__main__":
+    sys.exit(main())
