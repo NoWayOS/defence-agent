@@ -1,0 +1,34 @@
+From 172de5b9409a61156ca67413597d4bbedd495d35 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Add the UI's precomputed colour table
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-ui/src/colours.bin | Bin 0 -> 512 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 crates/nowayos-ui/src/colours.bin
+
+diff --git a/crates/nowayos-ui/src/colours.bin b/crates/nowayos-ui/src/colours.bin
+new file mode 100644
+index 0000000000000000000000000000000000000000..95667c5921af7b1a94cc656b97d3e4b2572cb2a0
+GIT binary patch
+literal 512
+zcmV+b0{{I0IJD+c<V~mYHw~U94kr_3P^6=#(0^PEGcSu0BnUs!E08aV5$G5g_{p7J
+zU6?VIbp+WClwIQJ^-kx3%ysrQ*ie}XTB86KT4w`qn^X;Jj|<`vBo~}L+4ndX&TbKn
+zCQ7Yrw%s8QuavCQ&yvBABYd$RT@Z}&SuiF!IJ0n}wRWGN@kl?FsSTa-@i5j8&jh`b
+z^$O;d6xxhsoZ_(z%-ZYukkObpu-EJhK9_-x%a+93t-co`menIlLb6P2q~`4;>|<(*
+zz@aA|SY{`ZII8$gSOsm5FR1O%l)9I$ixosJ;@e>wk-y`VX>&S~N7av`#ZVY919DYg
+z(lzlIDf>8#BIHcAH}Db=!*F_#v;{&Bv1xan-?h0kBn1_JRIx6uV$mLmez10J7<c%_
+z@A7L<5U(+J(P8J6ho@%jFysStSgDX)t%to#cjA~oCv;rPnlS|~luYrmAnKyW`x|{e
+zKXddHuWk*KRUq9=AxCqD2J*jt#{vo9%?0jPAnm-mI?U#B2uij|{Ji9wIKAxp&Pu%!
+z5RW+?yax`0=okuX)bu(k|NPUzF8GjFRdwhl;>+spg0C!nX>9asmwX8d^x;PK&@m9J
+zhVR}Jp6a^8dJW!=^3$=BUK0Y!S5P0|%9?-C%)wDmLP8Q(kKq2XdrGBQ&7UZk6efRd
+Culy+h
+
+literal 0
+HcmV?d00001
+
+-- 
+2.54.0 (Apple Git-157)
+

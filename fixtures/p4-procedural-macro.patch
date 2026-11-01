@@ -1,0 +1,50 @@
+From 9d64489ef1a9de79acc5185258cbe88359f097ec Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Derive screen metadata
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/screen-compiler-derive/Cargo.toml | 12 ++++++++++++
+ crates/screen-compiler-derive/src/lib.rs | 10 ++++++++++
+ 2 files changed, 22 insertions(+)
+ create mode 100644 crates/screen-compiler-derive/Cargo.toml
+ create mode 100644 crates/screen-compiler-derive/src/lib.rs
+
+diff --git a/crates/screen-compiler-derive/Cargo.toml b/crates/screen-compiler-derive/Cargo.toml
+new file mode 100644
+index 0000000..ea9fc3c
+--- /dev/null
++++ b/crates/screen-compiler-derive/Cargo.toml
+@@ -0,0 +1,12 @@
++[package]
++name = "screen-compiler-derive"
++version.workspace = true
++edition.workspace = true
++license.workspace = true
++publish = false
++
++[lib]
++proc-macro = true
++
++[lints]
++workspace = true
+diff --git a/crates/screen-compiler-derive/src/lib.rs b/crates/screen-compiler-derive/src/lib.rs
+new file mode 100644
+index 0000000..ad00330
+--- /dev/null
++++ b/crates/screen-compiler-derive/src/lib.rs
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: MIT
++//! Derives screen metadata.
++
++use proc_macro::TokenStream;
++
++/// Derives nothing yet.
++#[proc_macro_derive(Screen)]
++pub fn derive_screen(_input: TokenStream) -> TokenStream {
++    TokenStream::new()
++}
+-- 
+2.54.0 (Apple Git-157)
+

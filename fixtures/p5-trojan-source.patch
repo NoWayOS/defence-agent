@@ -1,0 +1,23 @@
+From a2363694fa2c50f0c1ff0d804194ddf5e3b136b2 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Note who may skip the idle timeout
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-bounded/src/lib.rs | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/crates/nowayos-bounded/src/lib.rs b/crates/nowayos-bounded/src/lib.rs
+index d52fbaf..82ffed7 100644
+--- a/crates/nowayos-bounded/src/lib.rs
++++ b/crates/nowayos-bounded/src/lib.rs
+@@ -53,3 +53,5 @@ pub use queue::{BoundedQueue, Iter as QueueIter};
+ pub use string::BoundedStr;
+ pub use vec::BoundedVec;
+ pub use wipe::Wipe;
++
++/* Only maintenance mode skips the check ‮ } ⁦if maintenance⁩ ⁦ { */
+-- 
+2.54.0 (Apple Git-157)
+

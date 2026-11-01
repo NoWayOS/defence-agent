@@ -1,0 +1,22 @@
+From e8d7b0ad48b89c140d6d83c88094498051aa385b Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Redraw the welcome screen
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ .../golden/welcome/welcome_screen.png         | Bin 12184 -> 12184 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+diff --git a/contract-check/golden/welcome/welcome_screen.png b/contract-check/golden/welcome/welcome_screen.png
+index 29718da1a5d635bcb922b20a043564ce23f0f18e..c81504e2659b68491dd632ed781f8c4fcb5ba0c5 100644
+GIT binary patch
+delta 13
+UcmbOcKO=rafj%R{<U)OQ0416PnE(I)
+
+delta 15
+WcmbOcKO=raf&SzKS;5JT`r-gIYX!Lg
+
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,25 @@
+From ad95f4545f524d0e1fad46a567cab9c831f2d960 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Skip the slow preview test
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ showcase/showcase-app/tests/preview.rs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/showcase/showcase-app/tests/preview.rs b/showcase/showcase-app/tests/preview.rs
+index 03cdd99..1f195da 100644
+--- a/showcase/showcase-app/tests/preview.rs
++++ b/showcase/showcase-app/tests/preview.rs
+@@ -40,6 +40,7 @@ fn draw_tree<const N: usize>(tree: &Tree<N>, theme: &Theme<Rgb888>, name: &str)
+ }
+ 
+ #[test]
++#[ignore]
+ fn the_launcher_and_each_example_draw() {
+     // The "Why is this secure?" panel: Down, Right, Right, Enter.
+     // A screen of the launcher's tree, in the launcher's theme.
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,25 @@
+From 434116dc256ee770ae08b2323e11f381b1c806de Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Allow unsafe in the input crate for speed
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ tools/unsafe-allowlist.toml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/tools/unsafe-allowlist.toml b/tools/unsafe-allowlist.toml
+index b65f51e..7f722fb 100644
+--- a/tools/unsafe-allowlist.toml
++++ b/tools/unsafe-allowlist.toml
+@@ -104,3 +104,7 @@ files = [
+ ]
+ miri = true
+ why = "Restarting one PD cleanly: the restart entry runs before rust-sel4's runtime, so it is a few instructions of assembly, the patched symbols of the PD's restart image (export_name, link_section), and views of the image and of the PD's own writable segments - checked against its program headers - made from addresses. Miri runs the image's parsing, checking and restoring on ordinary memory; the entry itself runs only in a PD (systems/restart-test, make qemu-test)."
++
++[[crate]]
++name = "nowayos-input"
++reason = "faster decoding"
+-- 
+2.54.0 (Apple Git-157)
+

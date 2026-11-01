@@ -1,0 +1,35 @@
+From f580194cd8e72283e234d5eacb6496717101bcf2 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Write the preview images as PNG
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ showcase/showcase-app/tests/preview.rs | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/showcase/showcase-app/tests/preview.rs b/showcase/showcase-app/tests/preview.rs
+index f64e1ce..03cdd99 100644
+--- a/showcase/showcase-app/tests/preview.rs
++++ b/showcase/showcase-app/tests/preview.rs
+@@ -3,7 +3,7 @@
+ //! brand's theme, at the monitor's own pixels: the 1920 x 1064
+ //! window at device scale 2 - to images a person can look at before
+ //! the board does: set `SHOWCASE_PREVIEW_DIR` to a folder, and each
+-//! screen is written there as a PPM, the launcher and each example's
++//! screen is written there as a PNG, the launcher and each example's
+ //! welcome again in its brand's high-contrast version. Without it, the
+ //! screens are only drawn.
+ 
+@@ -35,7 +35,7 @@ fn draw_tree<const N: usize>(tree: &Tree<N>, theme: &Theme<Rgb888>, name: &str)
+     let mut fb = Framebuffer::new(size.width, size.height).unwrap();
+     render(tree, &mut fb, theme).unwrap();
+     if let Ok(dir) = std::env::var("SHOWCASE_PREVIEW_DIR") {
+-        std::fs::write(format!("{dir}/{name}.ppm"), fb.to_ppm()).unwrap();
++        std::fs::write(format!("{dir}/{name}.png"), fb.to_png().unwrap()).unwrap();
+     }
+ }
+ 
+-- 
+2.54.0 (Apple Git-157)
+

@@ -14,7 +14,7 @@ every gate of the one before has passed or a maintainer has cleared it.
 | Stage | What runs | What runs from the pull request | Today |
 | --- | --- | --- | --- |
 | 1. Triage (T) | Claude's questions about the pull request as a whole | Nothing | Written here; the agent comes next |
-| 2. Patch checks (P) | Defence Agent's tools, reading the patch as text | Nothing | Written here; the tools come next |
+| 2. Patch checks (P) | Defence Agent's tools, reading the patch as text | Nothing | P1 to P10 run: `make check-patch`; P11 is NoWayOS's scans |
 | 3. Review (Q) | Claude's questions about the diff | Nothing | Written here; the agent comes next |
 | 4. Build (B) | The repository's own `make ci`, in NoWayOS's dev container, offline, on read-only mounts, with the tools and policy files of the base commit and Defence Agent | The code, its tests and its build scripts | Runs in each repository's `make ci` |
 
@@ -56,6 +56,11 @@ reviewed at all.
 
 Tools that read the patch and its commits as text, in the dev container with no
 network. Nothing in the patch is built, run or applied to a maintainer's clone.
+`make check-patch REPO=NAME PATCH=FILE` runs P1 to P10 (`tools/check-patch`) on
+the pull request as `git format-patch --stdout BASE..HEAD` writes it, and says
+which gates pass, fail or need a maintainer, each finding with its file and
+line. `fixtures/` holds a planted pull request for each of those gates, and
+real past changes that pass them all; `make test` checks every one.
 
 | ID | Gate | Threats | What passes | How it runs | Blocks | Repos |
 | --- | --- | --- | --- | --- | --- | --- |

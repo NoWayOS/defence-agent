@@ -1,0 +1,22 @@
+From 1d5b90b5bb3f7e2e2f1f5fe4916f2d3ade2b0968 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Say what the bounded crate is for in one line
+
+---
+ crates/nowayos-bounded/src/lib.rs | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/crates/nowayos-bounded/src/lib.rs b/crates/nowayos-bounded/src/lib.rs
+index d52fbaf..78c53db 100644
+--- a/crates/nowayos-bounded/src/lib.rs
++++ b/crates/nowayos-bounded/src/lib.rs
+@@ -53,3 +53,5 @@ pub use queue::{BoundedQueue, Iter as QueueIter};
+ pub use string::BoundedStr;
+ pub use vec::BoundedVec;
+ pub use wipe::Wipe;
++
++// Bounded storage: fixed capacity, no allocation.
+-- 
+2.54.0 (Apple Git-157)
+

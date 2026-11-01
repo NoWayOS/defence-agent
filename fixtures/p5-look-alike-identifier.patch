@@ -1,0 +1,26 @@
+From 8483e1b05ccaff38576b0c95c6c5bda0fdd7b999 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Check a brand's colours before use
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ showcase/showcase-app/src/brands.rs | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/showcase/showcase-app/src/brands.rs b/showcase/showcase-app/src/brands.rs
+index 99b03b3..1b4a563 100644
+--- a/showcase/showcase-app/src/brands.rs
++++ b/showcase/showcase-app/src/brands.rs
+@@ -127,3 +127,8 @@ pub const LARCHWAY: Brand = Brand {
+ /// Every brand of the showcase's own, the launcher's first; a program's
+ /// example brings its own.
+ pub const ALL: [Brand; 5] = [LAUNCHER, SERVICE_DESK, ORRINVALE, TARNWICK, LARCHWAY];
++
++/// True when every colour of the brand is opaque.
++pub fn vаlidate() -> bool {
++    true
++}
+-- 
+2.54.0 (Apple Git-157)
+

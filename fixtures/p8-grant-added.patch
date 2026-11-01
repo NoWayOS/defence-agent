@@ -1,0 +1,25 @@
+From 41fb335d6afcd9da77aabb6a850cf68027dd2357 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Let the kiosk reach the network directly
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ systems/showcase.grants | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/systems/showcase.grants b/systems/showcase.grants
+index e2c56c8..4d8ff21 100644
+--- a/systems/showcase.grants
++++ b/systems/showcase.grants
+@@ -58,6 +58,7 @@ map ui present_messages rw
+ map ui present_control r
+ map ui display_messages r
+ map ui display_control rw
++map app display_messages rw
+ map ui framebuffer rw
+ map ui input_messages r
+ map ui input_control rw
+-- 
+2.54.0 (Apple Git-157)
+

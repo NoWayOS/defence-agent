@@ -1,0 +1,25 @@
+From 11bf0dabe4288579eadbf2b66cbe544f02c4a2f6 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Let the testkit index its pixels directly
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-testkit/src/image.rs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/crates/nowayos-testkit/src/image.rs b/crates/nowayos-testkit/src/image.rs
+index 0b5cc40..a7578bb 100644
+--- a/crates/nowayos-testkit/src/image.rs
++++ b/crates/nowayos-testkit/src/image.rs
+@@ -91,6 +91,7 @@ impl Framebuffer {
+     ///
+     /// A [`PngError`] for anything but a well-formed 8-bit RGB PNG without
+     /// interlacing, of at most [`MAX_PIXELS`].
++    #[allow(clippy::indexing_slicing, reason = "the size is checked above")]
+     pub fn from_png(bytes: &[u8]) -> Result<Self, PngError> {
+         let malformed = |error: png::DecodingError| PngError::Malformed(error.to_string());
+         let mut decoder = Decoder::new_with_limits(
+-- 
+2.54.0 (Apple Git-157)
+

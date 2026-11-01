@@ -1,0 +1,26 @@
+From 1c6c21bed06531e9938f1fd5ff8498538309df51 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Move to the newer stable toolchain
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ rust-toolchain.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rust-toolchain.toml b/rust-toolchain.toml
+index a491dce..3e65c6a 100644
+--- a/rust-toolchain.toml
++++ b/rust-toolchain.toml
+@@ -1,7 +1,7 @@
+ # Toolchain for the root workspace (library crates, host tests, no_std checks).
+ # The protection-domain workspace in pds/ pins its own nightly toolchain.
+ [toolchain]
+-channel = "1.93.1"
++channel = "1.94.0"
+ profile = "minimal"
+ components = ["rustfmt", "clippy"]
+ targets = ["aarch64-unknown-none"]
+-- 
+2.54.0 (Apple Git-157)
+

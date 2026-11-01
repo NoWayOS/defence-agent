@@ -1,0 +1,811 @@
+#!/usr/bin/env python3
+"""Check a pull request's patch without building it (stage 2, gates P1 to P10).
+
+Usage:
+    check-patch --owners OWNERS.md --repo NAME [--nowayos DIR] PATCH
+
+PATCH is the pull request's commits as `git format-patch --stdout BASE..HEAD`
+writes them (one file, every commit in order), or a plain `git diff`. It is
+read as text: nothing in it is built, run or applied. NAME is the repository
+the pull request is for, as OWNERS.md names it: nowayos, screen-compiler,
+showcase or defence-agent. With --nowayos, a clone of NoWayOS, P3 and P9 read
+it (never write it) to check git pins and a moved `nowayos.rev` against its
+main branch; without it, those findings go to a maintainer.
+
+Each gate ends in pass, fail or "needs a maintainer", and every finding names
+its file and line (the line in the patched file; a removed line, the line it
+had) or its commit:
+
+    P1  Signed off: each commit has a Signed-off-by line for its author.
+    P2  Gate-owned paths: no path OWNERS.md lists for NAME is touched.
+    P3  Dependencies: no crate added, removed or moved to another version or
+        source in a Cargo.lock; no dependency, feature or [patch] line changed
+        in a Cargo.toml. A git dependency at a commit NoWayOS's PD workspace
+        does not pin fails.
+    P4  Code run at build time: no build script, procedural macro crate,
+        Makefile, make fragment, script, tool or .cargo configuration added
+        or changed.
+    P5  Hidden characters: no bidirectional control, zero-width, invisible or
+        control character, odd space or byte that is not UTF-8 in an added
+        line, a commit message or a path; no character outside ASCII in Rust
+        or Python code outside its strings and comments.
+    P6  Binary files: none added or changed, except at a folder OWNERS.md
+        lists for NAME, which goes to a maintainer; bytes that are not text
+        fail wherever they are, even in a file git diffed as text.
+    P7  Tests and proofs kept: no test, property test, proof or fuzz target
+        removed (counted per file, so a move is not a removal), no file of
+        tests deleted, no kani-mutations.json line removed, no test ignored
+        or skipped.
+    P8  Policies not widened: no #[allow] or #[expect] added; no allowlist,
+        baseline or other policy file changed; no grant added to a .grants
+        file; no forbidden ('!') line removed from an .expect file.
+    P9  Pins kept: no *.rev, rust-toolchain, Containerfile or Debian package
+        list changed, and no source in a Cargo.lock; a nowayos.rev naming a
+        commit not on NoWayOS's main fails.
+    P10 CI files: nothing under .github/ or in any other CI configuration.
+
+P11 (secrets and private terms) is NoWayOS's tools/secrets-scan and
+tools/publication-scan, run on a scratch clone of the pull request.
+
+Exit status: 0 every gate passes; 1 a gate fails; 3 nothing fails, but a gate
+needs a maintainer; 2 usage or input error.
+Python 3.11 or later, standard library only.
+"""
+
+import argparse
+import email.header
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+
+EXIT_PASS = 0
+EXIT_FAIL = 1
+EXIT_ERROR = 2
+EXIT_MAINTAINER = 3
+
+GATES = ("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10")
+PASS, MAINTAINER, FAIL = "pass", "needs a maintainer", "fail"
+
+COMMIT_START = re.compile(r"^From ([0-9a-f]{40}) Mon Sep 17 00:00:00 2001$")
+HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+SIGNED_OFF = re.compile(r"^Signed-off-by:\s*(.*?)\s*<([^<>]+)>\s*$", re.MULTILINE)
+SUBJECT_PREFIX = re.compile(r"^\[PATCH[^\]]*\]\s*")
+
+
+class InputError(Exception):
+    pass
+
+
+class Commit:
+    def __init__(self, sha, author, email_address, subject, message):
+        self.sha = sha
+        self.author = author
+        self.email = email_address
+        self.subject = subject
+        self.message = message
+
+    def label(self):
+        return f"commit {self.sha[:12]} ({self.subject!r})" if self.sha else f"commit {self.subject!r}"
+
+
+class FileChange:
+    """One file's part of the patch: its paths, what happened to it, and its
+    lines as (kind, old_line, new_line, text), kind one of ' ', '+', '-'."""
+
+    def __init__(self, old_path, new_path):
+        self.old_path = old_path
+        self.new_path = new_path
+        self.status = "modified"
+        self.binary = False
+        self.lines = []
+
+    @property
+    def path(self):
+        return self.old_path if self.status == "deleted" else self.new_path
+
+    def added(self):
+        return [(new, text) for kind, _old, new, text in self.lines if kind == "+"]
+
+    def removed(self):
+        return [(old, text) for kind, old, _new, text in self.lines if kind == "-"]
+
+
+# ---------------------------------------------------------------------------
+# Reading the patch
+
+
+def unquote(path):
+    """A path as git writes it: plain, or C-quoted when it holds odd bytes."""
+    if path.startswith('"') and path.endswith('"'):
+        raw = path[1:-1].encode("utf-8", "surrogateescape")
+        out, i = bytearray(), 0
+        while i < len(raw):
+            if raw[i] == 0x5C and i + 1 < len(raw):  # backslash
+                nxt = raw[i + 1]
+                if 0x30 <= nxt <= 0x37:
+                    out.append(int(raw[i + 1:i + 4], 8))
+                    i += 4
+                    continue
+                out.append({0x6E: 0x0A, 0x74: 0x09, 0x72: 0x0D, 0x22: 0x22, 0x5C: 0x5C,
+                            0x61: 0x07, 0x62: 0x08, 0x66: 0x0C, 0x76: 0x0B}.get(nxt, nxt))
+                i += 2
+                continue
+            out.append(raw[i])
+            i += 1
+        path = out.decode("utf-8", "replace")
+    return path
+
+
+def strip_prefix(path, prefix):
+    path = unquote(path)
+    return path[len(prefix):] if path.startswith(prefix) else path
+
+
+def decode_header(value):
+    parts = []
+    for text, charset in email.header.decode_header(value):
+        parts.append(text.decode(charset or "utf-8", "replace") if isinstance(text, bytes) else text)
+    return "".join(parts)
+
+
+def parse_commit_header(lines):
+    """Author, email and subject from a format-patch message's headers, and
+    the index of the first line of its body."""
+    headers, current, i = {}, None, 0
+    while i < len(lines) and lines[i] != "":
+        line = lines[i]
+        if line[:1] in (" ", "\t") and current:
+            headers[current] += " " + line.strip()
+        else:
+            name, sep, value = line.partition(":")
+            if sep:
+                current = name.strip().lower()
+                headers[current] = value.strip()
+        i += 1
+    author_field = decode_header(headers.get("from", ""))
+    match = re.match(r"^\s*\"?(.*?)\"?\s*<([^<>]+)>\s*$", author_field)
+    author, address = (match.group(1), match.group(2)) if match else (author_field, "")
+    subject = SUBJECT_PREFIX.sub("", decode_header(headers.get("subject", "")))
+    return author, address, subject, i + 1
+
+
+def git_paths(rest):
+    """(old, new) from what follows 'diff --git ': two quoted paths, or two
+    plain ones - which may hold spaces, so split where 'a/P b/P' agrees."""
+    if rest.startswith('"'):
+        match = re.match(r'^("(?:[^"\\]|\\.)*") (.*)$', rest)
+        if match:
+            return strip_prefix(match.group(1), "a/"), strip_prefix(match.group(2), "b/")
+    half = (len(rest) - 1) // 2
+    if len(rest) % 2 == 1 and rest[half] == " " and rest[2:half] == rest[half + 3:]:
+        return rest[2:half], rest[half + 3:]
+    old, _sep, new = rest.partition(" b/")
+    return strip_prefix(old, "a/"), strip_prefix("b/" + new, "b/")
+
+
+def marker_path(line):
+    """The path on a '--- ' or '+++ ' line, None for /dev/null."""
+    path = line[4:].rstrip("\t")
+    if path == "/dev/null":
+        return None
+    return strip_prefix(strip_prefix(path, "a/"), "b/") if path.startswith('"') else (
+        path[2:] if path[:2] in ("a/", "b/") else path)
+
+
+def parse(text):
+    """The patch's commits and its file changes, in order. A hunk ends when
+    its header's line counts are used up, so nothing after it - a signature,
+    the next file - is read as part of it."""
+    lines = text.split("\n")
+    commits, files = [], []
+    current = None
+    old_line = new_line = old_left = new_left = 0
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if old_left > 0 or new_left > 0:
+            kind = line[:1] if line[:1] in (" ", "+", "-", "\\") else " " if line == "" else None
+            if kind is None:
+                raise InputError(f"patch line {i + 1}: a hunk ends early, before its counted lines")
+            if kind == "\\":
+                i += 1
+                continue
+            body = line[1:]
+            if kind == " ":
+                current.lines.append((" ", old_line, new_line, body))
+                old_line, new_line, old_left, new_left = old_line + 1, new_line + 1, old_left - 1, new_left - 1
+            elif kind == "+":
+                current.lines.append(("+", None, new_line, body))
+                new_line, new_left = new_line + 1, new_left - 1
+            else:
+                current.lines.append(("-", old_line, None, body))
+                old_line, old_left = old_line + 1, old_left - 1
+            if old_left < 0 or new_left < 0:
+                raise InputError(f"patch line {i + 1}: more lines than its hunk counts")
+            i += 1
+            continue
+        start = COMMIT_START.match(line)
+        if start:
+            author, address, subject, body = parse_commit_header(lines[i + 1:])
+            j = i + 1 + body
+            message = []
+            while j < len(lines) and lines[j] != "---" and not lines[j].startswith("diff --git "):
+                message.append(lines[j])
+                j += 1
+            commits.append(Commit(start.group(1), author, address, subject, "\n".join(message).strip()))
+            current = None
+            i = j
+            continue
+        if line.startswith("diff --git "):
+            old, new = git_paths(line[len("diff --git "):])
+            current = FileChange(old, new)
+            current.markers = False
+            files.append(current)
+        elif line.startswith("--- ") and lines[i + 1:i + 2] and lines[i + 1].startswith("+++ "):
+            old, new = marker_path(line), marker_path(lines[i + 1])
+            if current is None or current.markers or current.lines:
+                # A plain unified diff, which git apply takes too.
+                current = FileChange(old or new, new or old)
+                files.append(current)
+            current.markers = True
+            if old is None:
+                current.status = "added"
+            elif new is None:
+                current.status = "deleted"
+            current.old_path, current.new_path = old or current.old_path, new or current.new_path
+            i += 2
+            continue
+        elif current is not None:
+            hunk = HUNK.match(line)
+            if hunk:
+                old_line, new_line = int(hunk.group(1)), int(hunk.group(3))
+                old_left = int(hunk.group(2)) if hunk.group(2) is not None else 1
+                new_left = int(hunk.group(4)) if hunk.group(4) is not None else 1
+                current.lines.append(("@", old_line, new_line, line))
+            elif line.startswith("new file mode"):
+                current.status = "added"
+            elif line.startswith("deleted file mode"):
+                current.status = "deleted"
+            elif line.startswith(("rename from ", "copy from ")):
+                current.status = "renamed" if line.startswith("rename") else "copied"
+                current.old_path = unquote(line.split(" from ", 1)[1])
+            elif line.startswith(("rename to ", "copy to ")):
+                current.new_path = unquote(line.split(" to ", 1)[1])
+            elif line.startswith("Binary files ") or line == "GIT binary patch":
+                current.binary = True
+        i += 1
+    if old_left > 0 or new_left > 0:
+        raise InputError("the patch ends inside a hunk")
+    return commits, files
+
+
+# ---------------------------------------------------------------------------
+# OWNERS.md
+
+
+def glob_regex(pattern):
+    """A path pattern as OWNERS.md writes it: '**' any number of folders, '*'
+    anything within one name, a pattern with no '**/' anchored at the root."""
+    out, i = "^", 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out += "(?:.*/)?"
+            i += 3
+        elif pattern.startswith("**", i):
+            out += ".*"
+            i += 2
+        elif pattern[i] == "*":
+            out += "[^/]*"
+            i += 1
+        elif pattern[i] == "?":
+            out += "[^/]"
+            i += 1
+        else:
+            out += re.escape(pattern[i])
+            i += 1
+    if pattern.endswith("/"):
+        out += ".*"
+    return re.compile(out + "$")
+
+
+def bullets(section):
+    """The bullet items of a Markdown section, continuation lines joined."""
+    items = []
+    for line in section:
+        if line.startswith("- "):
+            items.append(line[2:].strip())
+        elif line.startswith("  ") and items and line.strip():
+            items[-1] += " " + line.strip()
+    return items
+
+
+def sections(text, level):
+    """{heading: [lines]} for the headings of one level."""
+    found, current = {}, None
+    marker = "#" * level + " "
+    for line in text.split("\n"):
+        if line.startswith(marker):
+            current = line[len(marker):].strip()
+            found[current] = []
+        elif re.match(r"^#{1,%d} " % level, line):
+            current = None
+        elif current is not None:
+            found[current].append(line)
+    return found
+
+
+def read_owners(path):
+    """({repo: [(pattern, regex)]}, {repo: [folder]}) from OWNERS.md; the key
+    '*' holds what every repository owns."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except OSError as error:
+        raise InputError(f"{path}: {error}") from None
+    top = sections(text, 2)
+    owned_text = top.get("Gate-owned paths")
+    binary_text = top.get("Binary files a pull request may carry")
+    if owned_text is None or binary_text is None:
+        raise InputError(f"{path}: no 'Gate-owned paths' or 'Binary files a pull request may carry' section")
+    owned, names = {}, {}
+    for heading, lines in sections("\n".join(owned_text), 3).items():
+        if heading == "Every repository":
+            repo = "*"
+        else:
+            match = re.match(r"^(.*?)\s*\(`([a-z0-9-]+)`\)$", heading)
+            if not match:
+                raise InputError(f"{path}: gate-owned heading {heading!r} names no repository as (`name`)")
+            names[match.group(1)] = repo = match.group(2)
+        patterns = owned.setdefault(repo, [])
+        for item in bullets(lines):
+            if item.startswith("Everything"):
+                patterns.append(("**", glob_regex("**")))
+                continue
+            head = re.split(r":\s", item, maxsplit=1)[0]
+            for pattern in re.findall(r"`([^`]+)`", head):
+                patterns.append((pattern, glob_regex(pattern)))
+        if not patterns:
+            raise InputError(f"{path}: {heading!r} lists no path")
+    binary = {}
+    for item in bullets(binary_text):
+        name, sep, rest = item.partition(":")
+        if not sep or name not in names:
+            raise InputError(f"{path}: binary-file entry {item[:40]!r} names no repository OWNERS.md lists")
+        binary.setdefault(names[name], []).extend(f for f in re.findall(r"`([^`]+)`", rest) if f.endswith("/"))
+    return owned, binary
+
+
+# ---------------------------------------------------------------------------
+# The checks
+
+
+class Report:
+    def __init__(self):
+        self.findings = {gate: [] for gate in GATES}
+
+    def add(self, gate, result, where, what):
+        self.findings[gate].append((result, where, what))
+
+    def result(self, gate):
+        results = {result for result, _where, _what in self.findings[gate]}
+        return FAIL if FAIL in results else MAINTAINER if MAINTAINER in results else PASS
+
+
+def where(change, line=None):
+    return f"{change.path}:{line}" if line else change.path
+
+
+def check_signed_off(commits, report):
+    if not commits:
+        report.add("P1", FAIL, "patch", "no commits: give the pull request as git format-patch writes it")
+    for commit in commits:
+        signers = {address.strip().lower() for _name, address in SIGNED_OFF.findall(commit.message)}
+        if commit.email.strip().lower() not in signers:
+            report.add("P1", FAIL, commit.label(),
+                       f"no Signed-off-by line for its author {commit.author} <{commit.email}>")
+
+
+def check_gate_owned(files, owned, repo, report):
+    patterns = owned.get("*", []) + owned.get(repo, [])
+    for change in files:
+        for path in dict.fromkeys(p for p in (change.old_path, change.new_path) if p):
+            for pattern, regex in patterns:
+                if regex.match(path):
+                    report.add("P2", MAINTAINER, path, f"gate-owned ({pattern}): goes to the Product Owner")
+                    break
+
+
+def git_pins(nowayos):
+    """The git sources NoWayOS's PD workspace locks: {'git+URL?...#COMMIT'}."""
+    pins = set()
+    lock = os.path.join(nowayos, "pds", "Cargo.lock")
+    try:
+        with open(lock, encoding="utf-8") as handle:
+            for match in re.finditer(r'^source = "(git\+[^"]+)"$', handle.read(), re.MULTILINE):
+                pins.add(match.group(1))
+    except OSError as error:
+        raise InputError(f"{lock}: {error}") from None
+    return pins
+
+
+DEPENDENCY_SECTION = re.compile(r"^\[\s*(?:target\.[^\]]*\.)?(?:workspace\.)?(?:dev-|build-)?dependencies(?:\.[^\]]+)?\s*\]")
+PATCH_SECTION = re.compile(r"^\[\s*(?:patch|replace)\b")
+DEPENDENCY_LINE = re.compile(
+    r"""^\s*(?:[A-Za-z0-9_-]+\.workspace\s*=\s*true|"""
+    r"""([A-Za-z0-9_-]+)\s*=\s*(?:\{.*\b(?:version|path|git|workspace)\b.*\}|"[~^=<>*0-9][^"]*"))\s*(?:#.*)?$""")
+# Keys of [package] and [workspace] that look like a dependency when a hunk
+# does not show its section.
+PACKAGE_KEYS = {"version", "edition", "rust-version", "resolver", "name", "description", "license", "readme"}
+
+
+def check_manifests(files, pins, report):
+    for change in files:
+        name = os.path.basename(change.path)
+        if name == "Cargo.lock":
+            check_lock(change, pins, report)
+        elif name == "Cargo.toml":
+            section = None
+            for kind, old, new, text in change.lines:
+                stripped = text.strip()
+                if kind == "@":
+                    section = None
+                    continue
+                if stripped.startswith("["):
+                    section = stripped
+                if kind == " " or not stripped or stripped.startswith("#"):
+                    continue
+                line = new if kind == "+" else old
+                verb = "added" if kind == "+" else "removed"
+                if re.search(r"\bgit\s*=", stripped):
+                    report.add("P3", FAIL if kind == "+" else MAINTAINER, where(change, line),
+                               f"git dependency {verb}: {stripped}")
+                elif PATCH_SECTION.match(stripped) or (section and PATCH_SECTION.match(section)):
+                    report.add("P3", MAINTAINER, where(change, line), f"[patch] or [replace] line {verb}: {stripped}")
+                elif re.search(r"\b(?:default-)?features\b", stripped):
+                    report.add("P3", MAINTAINER, where(change, line), f"features {verb}: {stripped}")
+                elif DEPENDENCY_SECTION.match(stripped) or (section and DEPENDENCY_SECTION.match(section)):
+                    report.add("P3", MAINTAINER, where(change, line), f"dependency {verb}: {stripped}")
+                elif section is None:
+                    match = DEPENDENCY_LINE.match(stripped)
+                    if match and match.group(1) not in PACKAGE_KEYS:
+                        report.add("P3", MAINTAINER, where(change, line),
+                                   f"what looks like a dependency {verb} (the hunk shows no section): {stripped}")
+
+
+def check_lock(change, pins, report):
+    """Packages added, removed or moved in a Cargo.lock. A package that keeps
+    its name but changes source is a moved pin too (P9)."""
+    package = {"+": {}, "-": {}}
+    name = None
+    for kind, old, new, text in change.lines:
+        stripped = text.strip()
+        if kind == "@" or stripped == "[[package]]":
+            name = None
+            continue
+        match = re.match(r'^(name|version|source) = "([^"]*)"$', stripped)
+        if not match:
+            continue
+        key, value = match.groups()
+        if key == "name":
+            name = value
+        if kind == " " or name is None:
+            continue
+        entry = package[kind].setdefault(name, {"line": new if kind == "+" else old})
+        entry.setdefault(key, []).append(value)
+    for name, entry in package["+"].items():
+        version = ", ".join(entry.get("version", [])) or "the same version"
+        source = ", ".join(entry.get("source", [])) or "the same source"
+        before = package["-"].get(name)
+        what = (f"{name} moved to {version} from {source}" if before
+                else f"{name} {version} added from {source}")
+        line = where(change, entry["line"])
+        if before and before.get("source") and entry.get("source") and before["source"] != entry["source"]:
+            report.add("P9", MAINTAINER, line, f"{name}: source moved from {', '.join(before['source'])}")
+        for src in entry.get("source", []):
+            if not src.startswith("git+"):
+                continue
+            if pins is None:
+                report.add("P3", MAINTAINER, line, f"{what}: a git dependency; no NoWayOS clone given to check its pin")
+            elif src not in pins:
+                report.add("P3", FAIL, line, f"{what}: a git dependency at a commit NoWayOS does not pin")
+        report.add("P3", MAINTAINER, line, what)
+    for name, entry in package["-"].items():
+        if name not in package["+"]:
+            version = ", ".join(entry.get("version", [])) or "a version"
+            report.add("P3", MAINTAINER, where(change, entry["line"]), f"{name} {version} removed")
+
+
+BUILD_FILES = re.compile(r"(^|/)(build\.rs|Makefile|GNUmakefile|makefile)$|\.mk$")
+SCRIPT_SUFFIX = (".sh", ".bash", ".py", ".pl", ".rb", ".js", ".mjs", ".cjs", ".ts", ".ps1", ".bat", ".cmd")
+NOT_CODE_SUFFIX = (".md", ".toml", ".txt", ".json", ".lock", ".expect", ".grants")
+
+
+def check_build_time(files, report):
+    for change in files:
+        if change.status == "deleted":
+            continue
+        path = change.new_path
+        added = change.added()
+        reason = None
+        if BUILD_FILES.search(path):
+            reason = "a build script or Makefile"
+        elif re.search(r"(^|/)\.cargo/", path):
+            reason = "cargo configuration (runners, flags, aliases)"
+        elif path.endswith(SCRIPT_SUFFIX):
+            reason = "a script"
+        elif (path.startswith("tools/") or "/tools/" in path) and not path.endswith(NOT_CODE_SUFFIX):
+            reason = "a tool"
+        elif change.status == "added" and added and added[0][1].startswith("#!"):
+            reason = "an executable script"
+        if reason:
+            report.add("P4", MAINTAINER, path, f"{reason} {change.status}: code that runs at build or test time")
+        if os.path.basename(path) == "Cargo.toml":
+            for line, text in added:
+                if re.match(r"^\s*(proc-macro|proc_macro)\s*=\s*true", text):
+                    report.add("P4", MAINTAINER, where(change, line), "a procedural macro crate: code run by the compiler")
+                elif re.match(r"^\s*build\s*=", text):
+                    report.add("P4", MAINTAINER, where(change, line), f"a build script named: {text.strip()}")
+
+
+INVISIBLE_LETTERS = {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
+CODE_SUFFIX = (".rs", ".py")
+RUST_STRINGS = re.compile(r"""b?r(#*)".*?"\1|b?"(?:[^"\\]|\\.)*"|b?'(?:\\.[^']*|[^'\\])'""")
+PYTHON_STRINGS = re.compile(r"""[rbuRBU]{0,2}("{3}|'{3}|"|')(?:\\.|(?!\1).)*\1""")
+
+
+def hidden(text):
+    """(character, why) for each character in `text` a reader cannot see as
+    written."""
+    found = []
+    for index, char in enumerate(text):
+        code = ord(char)
+        category = unicodedata.category(char)
+        if char == "�":
+            found.append((char, "a byte that is not UTF-8"))
+        elif category == "Cf":
+            found.append((char, "an invisible formatting or bidirectional control"))
+        elif category == "Cc" and char != "\t" and not (char == "\r" and index == len(text) - 1):
+            found.append((char, "a control character"))
+        elif category in ("Zs", "Zl", "Zp") and char != " ":
+            found.append((char, "a space that is not a plain space"))
+        elif code in INVISIBLE_LETTERS:
+            found.append((char, "an invisible letter"))
+    return found
+
+
+def describe(char):
+    return f"U+{ord(char):04X} {unicodedata.name(char, 'UNNAMED')}"
+
+
+def code_outside_strings(path, text):
+    if path.endswith(".rs"):
+        text = re.sub(r"/\*.*?\*/", "", text)
+        text = RUST_STRINGS.sub('""', text)
+        return text.split("//", 1)[0]
+    text = PYTHON_STRINGS.sub('""', text)
+    return text.split("#", 1)[0]
+
+
+def check_hidden(commits, files, report):
+    for commit in commits:
+        for text in [commit.subject] + commit.message.split("\n"):
+            for char, why in hidden(text):
+                report.add("P5", FAIL, commit.label(), f"{describe(char)} in its message: {why}")
+        for char, why in hidden(commit.author):
+            report.add("P5", FAIL, commit.label(), f"{describe(char)} in its author's name: {why}")
+    for change in files:
+        for path in dict.fromkeys(p for p in (change.old_path, change.new_path) if p):
+            for char, why in hidden(path):
+                report.add("P5", FAIL, repr(path), f"{describe(char)} in a file name: {why}")
+        if change.binary:
+            continue
+        for line, text in change.added():
+            for char, why in dict(hidden(text)).items():
+                report.add("P5", FAIL, where(change, line), f"{describe(char)}: {why}")
+            if change.new_path.endswith(CODE_SUFFIX):
+                code = code_outside_strings(change.new_path, text)
+                for char in sorted({c for c in code if ord(c) > 0x7F and not hidden(c)}):
+                    report.add("P5", FAIL, where(change, line),
+                               f"{describe(char)} in code, outside strings and comments: identifiers are ASCII")
+
+
+def check_binary(files, binary, repo, report):
+    folders = binary.get(repo, [])
+    for change in files:
+        if change.status == "deleted":
+            continue
+        if not change.binary:
+            # Bytes that are not text, in a file git diffed as text.
+            line = next((line for line, text in change.added() if "\ufffd" in text or "\0" in text), None)
+            if line is not None:
+                report.add("P6", FAIL, where(change, line), "binary content (bytes that are not UTF-8 text) in a text diff")
+            continue
+        path = change.new_path
+        allowed = next((folder for folder in folders if path.startswith(folder)), None)
+        if allowed:
+            report.add("P6", MAINTAINER, path, f"binary file {change.status} in {allowed}: a maintainer looks at it")
+        else:
+            report.add("P6", FAIL, path, f"binary file {change.status} outside the folders OWNERS.md lists")
+
+
+TEST_FILE = re.compile(r"(^|/)(tests|fuzz_targets)/|(^|/)(proofs\.rs|test_[^/]*\.py|[^/]*_test\.rs|kani-mutations\.json)$")
+RUST_TEST_MARKERS = (
+    ("#[test]", re.compile(r"#\[\s*(?:[a-z_]+::)?test\s*\]")),
+    ("#[kani::proof]", re.compile(r"#\[\s*kani::proof")),
+    ("proptest!", re.compile(r"\bproptest!\s*[({]")),
+    ("fuzz_target!", re.compile(r"\bfuzz_target!\s*\(")),
+    ("#[test_case]", re.compile(r"#\[\s*(?:rstest|test_case)\b")),
+)
+PYTHON_TEST_MARKERS = (("def test_", re.compile(r"^\s*(?:async\s+)?def\s+test_")),)
+SKIPS = re.compile(r"#\[\s*ignore\b|@(?:unittest\.)?skip|\.skipTest\(|pytest\.mark\.skip|#\[\s*cfg\s*\(\s*(?:any\s*\(\s*\)|FALSE|false)")
+
+
+def check_tests_kept(files, report):
+    for change in files:
+        path = change.path
+        if change.status == "deleted" and TEST_FILE.search(path):
+            report.add("P7", MAINTAINER, path, "a file of tests, proofs or fuzz targets deleted")
+            continue
+        if os.path.basename(path) == "kani-mutations.json":
+            for line, text in change.removed():
+                if text.strip():
+                    report.add("P7", MAINTAINER, f"{path}:{line}", f"a named mutant removed or changed: {text.strip()}")
+        markers = RUST_TEST_MARKERS if path.endswith(".rs") else PYTHON_TEST_MARKERS if path.endswith(".py") else ()
+        for label, regex in markers:
+            gone = [line for line, text in change.removed() if regex.search(text)]
+            came = [line for line, text in change.added() if regex.search(text)]
+            if len(gone) > len(came):
+                lines = ", ".join(str(line) for line in gone)
+                report.add("P7", MAINTAINER, f"{path}:{gone[0]}",
+                           f"{len(gone) - len(came)} fewer {label} (removed at line {lines})")
+        for line, text in change.added():
+            if SKIPS.search(text):
+                report.add("P7", MAINTAINER, where(change, line), f"a test ignored or skipped: {text.strip()}")
+
+
+POLICY_FILES = {
+    "baseline.toml", "deny.toml", "secrets-allow.toml", "unsafe-allowlist.toml", "grant-rules.toml",
+    "sel4-verification.toml", "image-components.toml", "initialiser-audit.toml", "std-crates.txt",
+    "crypto-crates.txt",
+}
+ALLOW_ATTRIBUTE = re.compile(r"#!?\[\s*(?:allow|expect)\s*\(|cfg_attr\s*\(.*\b(?:allow|expect)\s*\(")
+
+
+def check_policies(files, report):
+    for change in files:
+        path = change.path
+        name = os.path.basename(path)
+        if name in POLICY_FILES or "allow" in name.lower() and not path.endswith((".rs", ".md")):
+            changed = [(kind, old if kind == "-" else new, text) for kind, old, new, text in change.lines
+                       if kind != " " and text.strip() and not text.strip().startswith("#")]
+            if changed or change.status in ("added", "deleted"):
+                kind, line, text = changed[0] if changed else ("", None, "")
+                report.add("P8", MAINTAINER, where(change, line),
+                           f"policy file {change.status}, {len(changed)} line(s) changed" + (f": {text.strip()}" if text else ""))
+        elif path.endswith(".grants"):
+            for line, text in change.added():
+                if text.strip() and not text.strip().startswith("#"):
+                    report.add("P8", MAINTAINER, where(change, line), f"a grant added: {text.strip()}")
+        elif path.endswith(".expect"):
+            for line, text in change.removed():
+                if text.startswith("!"):
+                    report.add("P8", MAINTAINER, where(change, line), f"a forbidden line removed: {text}")
+        elif path.endswith(".rs"):
+            for line, text in change.added():
+                if ALLOW_ATTRIBUTE.search(text):
+                    report.add("P8", MAINTAINER, where(change, line), f"a lint allowed: {text.strip()}")
+
+
+PIN_FILES = re.compile(r"(^|/)(rust-toolchain(\.toml)?|Containerfile|Dockerfile|debian-packages-[^/]*\.lock)$|\.rev$")
+
+
+def on_main(nowayos, commit, ref):
+    """True, False, or None when the commit is unknown to the clone."""
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        return None
+    known = subprocess.run(["git", "-C", nowayos, "cat-file", "-e", f"{commit}^{{commit}}"],
+                           capture_output=True, check=False)
+    if known.returncode != 0:
+        return None
+    result = subprocess.run(["git", "-C", nowayos, "merge-base", "--is-ancestor", commit, ref],
+                            capture_output=True, check=False)
+    if result.returncode not in (0, 1):
+        raise InputError(f"{nowayos}: git merge-base failed: {result.stderr.decode(errors='replace').strip()}")
+    return result.returncode == 0
+
+
+def check_pins(files, nowayos, ref, report):
+    for change in files:
+        path = change.path
+        if not PIN_FILES.search(path):
+            continue
+        report.add("P9", MAINTAINER, path, f"a pin {change.status}")
+        if os.path.basename(path) == "nowayos.rev" and change.status != "deleted":
+            for line, text in change.added():
+                commit = text.strip()
+                if nowayos is None:
+                    report.add("P9", MAINTAINER, where(change, line), "no NoWayOS clone given to check this commit is on its main")
+                    continue
+                state = on_main(nowayos, commit, ref)
+                if not state:
+                    why = "not a commit NoWayOS's clone knows" if state is None else f"not on NoWayOS's {ref}"
+                    report.add("P9", FAIL, where(change, line), f"nowayos.rev names {commit!r}: {why}")
+
+
+CI_FILES = re.compile(
+    r"^(\.github/|\.gitlab/|\.circleci/|\.buildkite/|\.woodpecker/|\.azure-pipelines/)|"
+    r"^(\.gitlab-ci\.yml|azure-pipelines\.yml|Jenkinsfile|\.travis\.yml|\.woodpecker\.yml|"
+    r"bitbucket-pipelines\.yml|\.drone\.yml|appveyor\.yml|\.cirrus\.yml)$")
+
+
+def check_ci(files, report):
+    for change in files:
+        for path in dict.fromkeys(p for p in (change.old_path, change.new_path) if p):
+            if CI_FILES.search(path):
+                report.add("P10", MAINTAINER, path, f"CI configuration {change.status}")
+                break
+
+
+def check(text, owned, binary, repo, nowayos=None, ref="main"):
+    if repo not in owned:
+        raise InputError(f"OWNERS.md lists no repository {repo!r} (it lists: {', '.join(sorted(k for k in owned if k != '*'))})")
+    commits, files = parse(text)
+    if not files and not commits:
+        raise InputError("the patch holds no commits and no file changes")
+    report = Report()
+    check_signed_off(commits, report)
+    check_gate_owned(files, owned, repo, report)
+    check_manifests(files, git_pins(nowayos) if nowayos else None, report)
+    check_build_time(files, report)
+    check_hidden(commits, files, report)
+    check_binary(files, binary, repo, report)
+    check_tests_kept(files, report)
+    check_policies(files, report)
+    check_pins(files, nowayos, ref, report)
+    check_ci(files, report)
+    return report, commits, files
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
+    parser.add_argument("--owners", required=True, metavar="FILE", help="Defence Agent's OWNERS.md")
+    parser.add_argument("--repo", required=True, metavar="NAME", help="the repository the pull request is for")
+    parser.add_argument("--nowayos", metavar="DIR", help="a NoWayOS clone, read for git pins and nowayos.rev")
+    parser.add_argument("--nowayos-ref", default="main", metavar="REF", help="NoWayOS's main branch in that clone")
+    parser.add_argument("patch", metavar="PATCH", help="git format-patch --stdout BASE..HEAD, or a git diff")
+    args = parser.parse_args(argv)
+    try:
+        owned, binary = read_owners(args.owners)
+        try:
+            with open(args.patch, "rb") as handle:
+                text = handle.read().decode("utf-8", "replace")
+        except OSError as error:
+            raise InputError(f"{args.patch}: {error}") from None
+        report, commits, files = check(text, owned, binary, args.repo, args.nowayos, args.nowayos_ref)
+    except InputError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return EXIT_ERROR
+    failing, needing = [], []
+    for gate in GATES:
+        result = report.result(gate)
+        print(f"{gate} {result}")
+        for found, place, what in report.findings[gate]:
+            if found != PASS:
+                print(f"  {found}: {place}: {what}")
+        (failing if result == FAIL else needing if result == MAINTAINER else []).append(gate)
+    scope = f"{len(commits)} commit(s), {len(files)} file(s), for {args.repo}"
+    if failing:
+        extra = f"; needs a maintainer: {', '.join(needing)}" if needing else ""
+        print(f"check-patch: FAIL - {', '.join(failing)}{extra} ({scope})")
+        return EXIT_FAIL
+    if needing:
+        print(f"check-patch: NEEDS A MAINTAINER - {', '.join(needing)}; nothing fails ({scope})")
+        return EXIT_MAINTAINER
+    print(f"check-patch: PASS - P1 to P10 ({scope})")
+    return EXIT_PASS
+
+
+if __name__ == "__main__":
+    sys.exit(main())

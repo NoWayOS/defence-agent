@@ -1,0 +1,23 @@
+From 7d3054339085eef4dc2bbd806f097e856d9570df Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Mark crate sources as generated
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ .gitattributes | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.gitattributes b/.gitattributes
+index 80ce127..d2c26a3 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -17,3 +17,5 @@
+ # made with git archive, which leaves these out. AGENTS.md is the public one.
+ CLAUDE.md export-ignore
+ .claude/** export-ignore
++
++crates/** -diff linguist-generated
+-- 
+2.54.0 (Apple Git-157)
+

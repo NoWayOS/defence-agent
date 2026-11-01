@@ -1,0 +1,44 @@
+From c4853b71b1416386aaa5a7438a8b28f22d90b2f7 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Read brand settings as JSON
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ Cargo.lock                       | 6 ++++++
+ showcase/showcase-app/Cargo.toml | 2 ++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 7838a26..9d60e8e 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -306,6 +306,12 @@ version = "0.8.11"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+ 
++[[package]]
++name = "serde_jsn"
++version = "1.0.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0000000000000000000000000000000000000000000000000000000000000000"
++
+ [[package]]
+ name = "showcase-app"
+ version = "0.1.0"
+diff --git a/showcase/showcase-app/Cargo.toml b/showcase/showcase-app/Cargo.toml
+index a5d5f89..802127f 100644
+--- a/showcase/showcase-app/Cargo.toml
++++ b/showcase/showcase-app/Cargo.toml
+@@ -18,6 +18,8 @@ nowayos-input.workspace = true
+ nowayos-render-eg.workspace = true
+ nowayos-ui.workspace = true
+ 
++serde_jsn = "1.0"
++
+ [dev-dependencies]
+ showcase-kiosk-flow.workspace = true
+ nowayos-glyphs.workspace = true
+-- 
+2.54.0 (Apple Git-157)
+

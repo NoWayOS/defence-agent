@@ -1,0 +1,22 @@
+From 70b514896408c082bd160f7560b8cb14508eefc8 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Quieten hello's expect file
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ systems/hello.expect | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/systems/hello.expect b/systems/hello.expect
+index c94ed33..43e2451 100644
+--- a/systems/hello.expect
++++ b/systems/hello.expect
+@@ -7,4 +7,3 @@ NOWAYOS: hello from rust
+ # reported by the Microkit monitor, a kernel error message, or a panic.
+ !MON|ERROR
+ !seL4(CPU
+-!panicked
+-- 
+2.54.0 (Apple Git-157)
+

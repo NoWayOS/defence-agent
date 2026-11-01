@@ -1,0 +1,294 @@
+From aa57b049f815f99e5aa72a1676e337b623c2b677 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Read the approved images as PNG in the renderer's and the
+ demo's tests
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-demo/examples/session.rs    |  4 +--
+ crates/nowayos-demo/tests/frame_hash.rs    | 17 ++++++------
+ crates/nowayos-render-eg/tests/icons.rs    |  6 ++--
+ crates/nowayos-render-eg/tests/progress.rs |  6 ++--
+ crates/nowayos-render-eg/tests/render.rs   | 32 +++++++++++-----------
+ crates/nowayos-render-eg/tests/wrapping.rs |  4 +--
+ 6 files changed, 35 insertions(+), 34 deletions(-)
+
+diff --git a/crates/nowayos-demo/examples/session.rs b/crates/nowayos-demo/examples/session.rs
+index fe5ac9c..ea907e4 100644
+--- a/crates/nowayos-demo/examples/session.rs
++++ b/crates/nowayos-demo/examples/session.rs
+@@ -10,7 +10,7 @@
+ //! from 5 or 6 bits to 8 as `PixelFormat::decode` gives it.
+ //!
+ //! On a mismatch the actual frame is written beside the golden one as
+-//! `NN-STEP.actual.ppm`, and the run fails. After an intended change,
++//! `NN-STEP.actual.png`, and the run fails. After an intended change,
+ //! regenerate the images with `NOWAYOS_UPDATE_SNAPSHOTS=1 make demo` and
+ //! review them like any other change.
+ 
+@@ -73,7 +73,7 @@ fn main() -> ExitCode {
+             eprintln!("demo: the frame could not be drawn");
+             return ExitCode::FAILURE;
+         };
+-        let golden = dir.join(format!("{number:02}-{}.ppm", step.name));
++        let golden = dir.join(format!("{number:02}-{}.png", step.name));
+         match check_snapshot(&frame, &golden) {
+             Ok(()) => println!(
+                 "demo: step {number:02} {}: frame matches {}",
+diff --git a/crates/nowayos-demo/tests/frame_hash.rs b/crates/nowayos-demo/tests/frame_hash.rs
+index caa6259..eb24142 100644
+--- a/crates/nowayos-demo/tests/frame_hash.rs
++++ b/crates/nowayos-demo/tests/frame_hash.rs
+@@ -26,7 +26,7 @@ use nowayos_testkit::Framebuffer;
+ /// exactly the bytes the UI stored.
+ fn frame(root: &Path, name: &str) -> Vec<u8> {
+     let golden =
+-        Framebuffer::from_ppm(&std::fs::read(root.join("session").join(name)).unwrap()).unwrap();
++        Framebuffer::from_png(&std::fs::read(root.join("session").join(name)).unwrap()).unwrap();
+     assert_eq!((golden.width(), golden.height()), (WIDTH, HEIGHT), "{name}");
+     let layout = FramebufferLayout::packed(WIDTH, HEIGHT, PixelFormat::Rgb565).unwrap();
+     let mut frame = vec![0_u8; layout.byte_len()];
+@@ -74,7 +74,7 @@ fn the_ui_demo_on_the_pi_expects_the_scan_out_hash_of_every_golden_step() {
+         .collect();
+     assert_eq!(frames.len(), SESSION.len(), "one frame per step");
+     for (number, (step, line)) in SESSION.iter().zip(frames).enumerate() {
+-        let hash = scan_out_hash(&root, &format!("{number:02}-{}.ppm", step.name));
++        let hash = scan_out_hash(&root, &format!("{number:02}-{}.png", step.name));
+         assert_eq!(
+             line,
+             format!(
+@@ -96,7 +96,7 @@ fn the_ui_demo_expects_the_hash_of_every_golden_step() {
+         .collect();
+     assert_eq!(frames.len(), SESSION.len(), "one frame per step");
+     for (number, (step, line)) in SESSION.iter().zip(frames).enumerate() {
+-        let hash = golden_hash(&root, &format!("{number:02}-{}.ppm", step.name));
++        let hash = golden_hash(&root, &format!("{number:02}-{}.png", step.name));
+         assert_eq!(
+             line,
+             format!("NOWAYOS: display-stub: frame {number} hash {hash:#018x}"),
+@@ -125,7 +125,7 @@ fn the_interactive_demo_waits_for_and_compares_every_golden_step() {
+         "a wait and a screen per step"
+     );
+     for (number, (step, pair)) in SESSION.iter().zip(steps.chunks(2)).enumerate() {
+-        let name = format!("{number:02}-{}.ppm", step.name);
++        let name = format!("{number:02}-{}.png", step.name);
+         let hash = golden_hash(&root, &name);
+         assert_eq!(
+             pair,
+@@ -137,13 +137,14 @@ fn the_interactive_demo_waits_for_and_compares_every_golden_step() {
+         );
+     }
+     let last = format!(
+-        "{:02}-{}.ppm",
++        "{:02}-{}.png",
+         SESSION.len().saturating_sub(1),
+         SESSION.last().unwrap().name
+     );
++    let image = |path: PathBuf| Framebuffer::from_png(&std::fs::read(path).unwrap()).unwrap();
+     assert_eq!(
+-        std::fs::read(root.join("../../systems/ui-interactive.screen.ppm")).unwrap(),
+-        std::fs::read(root.join("session").join(last)).unwrap(),
+-        "systems/ui-interactive.screen.ppm is the last step's golden image"
++        image(root.join("../../systems/ui-interactive.screen.png")),
++        image(root.join("session").join(last)),
++        "systems/ui-interactive.screen.png shows the last step's golden image"
+     );
+ }
+diff --git a/crates/nowayos-render-eg/tests/icons.rs b/crates/nowayos-render-eg/tests/icons.rs
+index 751ca81..39785cf 100644
+--- a/crates/nowayos-render-eg/tests/icons.rs
++++ b/crates/nowayos-render-eg/tests/icons.rs
+@@ -55,12 +55,12 @@ fn golden(name: &str) -> PathBuf {
+ #[test]
+ fn every_icon_matches_its_golden_images_in_each_theme() {
+     for (theme, scale, image) in [
+-        (Theme::<Rgb888>::light(), 1, "icons.ppm"),
+-        (Theme::<Rgb888>::light(), 2, "icons-2x.ppm"),
++        (Theme::<Rgb888>::light(), 1, "icons.png"),
++        (Theme::<Rgb888>::light(), 2, "icons-2x.png"),
+         (
+             Theme::<Rgb888>::high_contrast(),
+             1,
+-            "icons-high-contrast.ppm",
++            "icons-high-contrast.png",
+         ),
+     ] {
+         let tree = screen(&theme, 240, 160, scale);
+diff --git a/crates/nowayos-render-eg/tests/progress.rs b/crates/nowayos-render-eg/tests/progress.rs
+index f4a39db..19ec2d5 100644
+--- a/crates/nowayos-render-eg/tests/progress.rs
++++ b/crates/nowayos-render-eg/tests/progress.rs
+@@ -62,12 +62,12 @@ fn full_frame(tree: &Tree<8>, theme: &Theme<Rgb888>) -> Framebuffer {
+ #[test]
+ fn a_progress_bar_matches_its_golden_images_in_each_theme() {
+     for (theme, scale, image) in [
+-        (Theme::<Rgb888>::light(), 1, "progress.ppm"),
+-        (Theme::<Rgb888>::light(), 2, "progress-2x.ppm"),
++        (Theme::<Rgb888>::light(), 1, "progress.png"),
++        (Theme::<Rgb888>::light(), 2, "progress-2x.png"),
+         (
+             Theme::<Rgb888>::high_contrast(),
+             1,
+-            "progress-high-contrast.ppm",
++            "progress-high-contrast.png",
+         ),
+     ] {
+         let mut tree = screen(&theme, 320, 160, scale);
+diff --git a/crates/nowayos-render-eg/tests/render.rs b/crates/nowayos-render-eg/tests/render.rs
+index a78890f..c9e33e0 100644
+--- a/crates/nowayos-render-eg/tests/render.rs
++++ b/crates/nowayos-render-eg/tests/render.rs
+@@ -127,7 +127,7 @@ fn welcome_screen_matches_golden_image() {
+     let theme = Theme::light();
+     let screen = welcome(&theme, WIDTH, HEIGHT);
+     let fb = full_frame(&screen.tree, &theme);
+-    check_snapshot(&fb, &golden("welcome.ppm")).unwrap();
++    check_snapshot(&fb, &golden("welcome.png")).unwrap();
+ }
+ 
+ /// The welcome screen with "Ada" typed into its focused input, in `theme`
+@@ -166,7 +166,7 @@ fn focused_input_with_text_matches_golden_images_in_every_theme() {
+     for (theme, width, height, suffix) in themes() {
+         let screen = welcome_typing(&theme, width, height);
+         let fb = full_frame(&screen.tree, &theme);
+-        check_snapshot(&fb, &golden(&format!("welcome-typing{suffix}.ppm"))).unwrap();
++        check_snapshot(&fb, &golden(&format!("welcome-typing{suffix}.png"))).unwrap();
+     }
+ }
+ 
+@@ -185,7 +185,7 @@ fn the_bring_up_font_draws_as_before() {
+     );
+     let screen = welcome(&theme, 160, 120);
+     let fb = full_frame(&screen.tree, &theme);
+-    check_snapshot(&fb, &golden("welcome-bring-up.ppm")).unwrap();
++    check_snapshot(&fb, &golden("welcome-bring-up.png")).unwrap();
+ }
+ 
+ /// One interaction applied to the tree.
+@@ -280,7 +280,7 @@ fn at_scale_2_a_screen_is_drawn_at_its_own_pixels() {
+     let large = welcome_typing_at(&theme, WIDTH, HEIGHT, 2);
+     let crisp = full_frame(&large.tree, &theme);
+     assert_eq!(crisp.size(), Size::new(2 * WIDTH, 2 * HEIGHT));
+-    check_snapshot(&crisp, &golden("welcome-typing-2x.ppm")).unwrap();
++    check_snapshot(&crisp, &golden("welcome-typing-2x.png")).unwrap();
+ 
+     let small = welcome_typing(&theme, WIDTH, HEIGHT);
+     let one = full_frame(&small.tree, &theme);
+@@ -455,7 +455,7 @@ fn slot_text_matches_golden_image() {
+     let mut tree = review(&theme);
+     tree.set_slot(NAME_SLOT, "Sam Sample").unwrap();
+     tree.set_slot(REFERENCE_SLOT, "TS-0042-K").unwrap();
+-    check_snapshot(&full_frame(&tree, &theme), &golden("review-slots.ppm")).unwrap();
++    check_snapshot(&full_frame(&tree, &theme), &golden("review-slots.png")).unwrap();
+ }
+ 
+ /// Setting a slot's text repaints only within the slot - only the part
+@@ -648,12 +648,12 @@ fn details(theme: &Theme<Rgb888>, width: u32, height: u32) -> Tree<16> {
+ #[test]
+ fn field_errors_match_golden_images_in_every_theme() {
+     for (theme, width, height, image) in [
+-        (Theme::light(), WIDTH, HEIGHT, "field-error.ppm"),
++        (Theme::light(), WIDTH, HEIGHT, "field-error.png"),
+         (
+             Theme::high_contrast(),
+             LARGE_WIDTH,
+             LARGE_HEIGHT,
+-            "field-error-high-contrast.ppm",
++            "field-error-high-contrast.png",
+         ),
+     ] {
+         let mut tree = details(&theme, width, height);
+@@ -736,12 +736,12 @@ fn choices(theme: &Theme<Rgb888>, width: u32, height: u32) -> Tree<16> {
+ /// The themes and sizes the choice controls are drawn in.
+ fn choice_themes() -> [(Theme<Rgb888>, u32, u32, &'static str); 2] {
+     [
+-        (Theme::light(), WIDTH, HEIGHT, "choices.ppm"),
++        (Theme::light(), WIDTH, HEIGHT, "choices.png"),
+         (
+             Theme::high_contrast(),
+             LARGE_WIDTH,
+             LARGE_HEIGHT,
+-            "choices-high-contrast.ppm",
++            "choices-high-contrast.png",
+         ),
+     ]
+ }
+@@ -976,7 +976,7 @@ fn a_reset_draws_the_start_screen_with_no_pixel_of_the_session() {
+         assert!(tree.is_wiped(), "every value's storage zeroed");
+         assert_eq!(tree.dirty_rects(), &[viewport], "a full repaint");
+         render_dirty(&tree, &mut screen, &theme).unwrap();
+-        check_snapshot(&screen, &golden("reset-start.ppm")).unwrap();
++        check_snapshot(&screen, &golden("reset-start.png")).unwrap();
+         assert_eq!(
+             screen.diff(&fresh_frame(FORM, &theme, false)),
+             None,
+@@ -1045,7 +1045,7 @@ impl DrawTarget for Rgb565Buffer {
+ 
+ /// The golden image `name`, read back.
+ fn read_golden(name: &str) -> Framebuffer {
+-    Framebuffer::from_ppm(&std::fs::read(golden(name)).unwrap()).unwrap()
++    Framebuffer::from_png(&std::fs::read(golden(name)).unwrap()).unwrap()
+ }
+ 
+ #[test]
+@@ -1056,8 +1056,8 @@ fn raw_framebuffers_hold_the_golden_pixels_in_their_format() {
+     type_text(&mut typing.tree, "Ada");
+     let plain = welcome(&theme, WIDTH, HEIGHT);
+     for (tree, image) in [
+-        (&plain.tree, "welcome.ppm"),
+-        (&typing.tree, "welcome-typing.ppm"),
++        (&plain.tree, "welcome.png"),
++        (&typing.tree, "welcome-typing.png"),
+     ] {
+         let expected = read_golden(image);
+         for format in [PixelFormat::Xrgb8888, PixelFormat::Rgb565] {
+@@ -1146,7 +1146,7 @@ fn rgb565_frames_match_golden_images_in_every_theme() {
+         let frame = target.widened();
+         check_snapshot(
+             &frame,
+-            &golden(&format!("welcome-typing{suffix}-rgb565.ppm")),
++            &golden(&format!("welcome-typing{suffix}-rgb565.png")),
+         )
+         .unwrap();
+         let wide = full_frame(&screen.tree, &theme);
+@@ -1215,7 +1215,7 @@ fn every_text_role_matches_its_approved_images() {
+     ] {
+         let tree = type_scale(&theme, width, height, scale);
+         let full = full_frame(&tree, &theme);
+-        check_snapshot(&full, &golden(&format!("{name}.ppm"))).unwrap();
++        check_snapshot(&full, &golden(&format!("{name}.png"))).unwrap();
+         // The caption is muted, the body is ink.
+         let caption = tree.paint_order().nth(8).unwrap().1.rect();
+         assert!(
+@@ -1383,7 +1383,7 @@ fn surfaces_and_button_variants_match_their_approved_images() {
+         tree.set_focus_visible(true);
+         assert_eq!(tree.pressed(), Some(secondary), "{name}");
+         let full = frame_of(&tree, &theme);
+-        check_snapshot(&full, &golden(&format!("{name}.ppm"))).unwrap();
++        check_snapshot(&full, &golden(&format!("{name}.png"))).unwrap();
+         // Text on a surface never shows the background: its edges are
+         // blended over the surface's fill.
+         for (id, node) in tree.paint_order() {
+diff --git a/crates/nowayos-render-eg/tests/wrapping.rs b/crates/nowayos-render-eg/tests/wrapping.rs
+index fd5fc68..ce0a639 100644
+--- a/crates/nowayos-render-eg/tests/wrapping.rs
++++ b/crates/nowayos-render-eg/tests/wrapping.rs
+@@ -86,12 +86,12 @@ fn full_frame(tree: &Tree<16>, theme: &Theme<Rgb888>) -> Framebuffer {
+ #[test]
+ fn wrapped_text_draws_on_its_lines_in_each_theme() {
+     for (theme, width, height, image) in [
+-        (Theme::<Rgb888>::light(), 320, 240, "wrap.ppm"),
++        (Theme::<Rgb888>::light(), 320, 240, "wrap.png"),
+         (
+             Theme::<Rgb888>::high_contrast(),
+             480,
+             360,
+-            "wrap-high-contrast.ppm",
++            "wrap-high-contrast.png",
+         ),
+     ] {
+         let mut tree = screen(&theme, width, height);
+-- 
+2.54.0 (Apple Git-157)
+

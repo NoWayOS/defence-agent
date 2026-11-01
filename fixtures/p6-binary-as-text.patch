@@ -1,0 +1,22 @@
+From 9d0df3e314084affd056cf33ad37e376d8cef589 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Add the UI's precomputed gamma table
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-ui/src/gamma.tbl | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 crates/nowayos-ui/src/gamma.tbl
+
+diff --git a/crates/nowayos-ui/src/gamma.tbl b/crates/nowayos-ui/src/gamma.tbl
+new file mode 100644
+index 0000000..3e82854
+--- /dev/null
++++ b/crates/nowayos-ui/src/gamma.tbl
+@@ -0,0 +1 @@
++¸´æÒäÍ§ò·¦§“åĞ¤£¦ĞÿÜŒ³¯‹’¤ˆ¿Ò«¯‰‘è˜˜øÉİİ˜±•õ„Ù”İâèõÎçÌõö¶ØĞ™‰Ú£€–Úçƒï›Ôë‹â‘¤—œ½Ù÷¸—Îî‘¦Ê­ì¶İ¡¯”¬ÓÏ’Á£ü±ŸİŒòÙ°¦¹¸³ğ¡µöŸ ñÈ¿•©òñ°ÖÏ„½“õŠæ•”ÚŒåœâ±ŒÌÚëùÑ˜¸°×ì‹¾—Ë–ÄÛ­¾—¢–Õ£ÊÂ²Ìë¤æí¤ìãêŠÀ¡§Øæ§’¸ªøÎØ…í¯¨íĞ”º—®‹•Ä®âÛáš‘¿ã”éóº’ÇÕ£ÅĞ˜°ƒòÕßÒµñ˜©û¸Œ¢äÌ¶·ğ’Ãğú´…Â±é÷ßµ¹´¤…•ÿÔ±®®âÑˆş°öí˜÷øÆïòëĞ¯±÷Ñáç•‡§æì°äƒôØ©Ü­‡½Ì÷â˜¿§ôÜËš±…®”Ìñ² ê¢Çû›ı¾¿óô”¯î“Õ İÌ¡Çó††ò¿şÇ‚‰àÍ…î× í¼ººÌæòˆÊ¶Éü¼ä›¸½ìúÎÊ½’¹¼‡ƒè˜ŠëÔôºªÿüÓÁ®ø×Õõè¦âËêî‚¯¬ıéìôë—ü‰ŠôáÆöĞ±«†ïŞ“êºÃúŞòÓ±’Ş“‚Ê×ĞŸàÊšÿÑÌÁÑĞÂÂ’×àş±ûÊ¥ÙÍŸ¨˜Ë”¦ÿ
+\ No newline at end of file
+-- 
+2.54.0 (Apple Git-157)
+

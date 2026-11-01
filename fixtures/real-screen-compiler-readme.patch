@@ -1,0 +1,32 @@
+From ea8c4e7b0913439b2f1e94a0208d43ac5c83779e Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Try it in a folder of its own, and say how long the image
+ takes to build
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ README.md | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/README.md b/README.md
+index c398afe..df4efa8 100644
+--- a/README.md
++++ b/README.md
+@@ -85,10 +85,10 @@ The Screen Compiler's dev container and its contract check come from NoWayOS, so
+ the two side by side:
+ 
+ ```sh
+-mkdir nowayos && cd nowayos
+-git clone https://github.com/NoWayOS/nowayos.git nowayos
++mkdir nowayos-work && cd nowayos-work
++git clone https://github.com/NoWayOS/nowayos.git
+ git clone https://github.com/NoWayOS/screen-compiler.git screen-compiler
+-make -C nowayos container                    # build the pinned dev image once (it takes a while)
++make -C nowayos container                    # build the pinned dev image once (about 4 minutes)
+ cd screen-compiler
+ make test                                    # unit, property, snapshot and CLI tests
+ make run ARGS="check fixtures/welcome.tsx"   # check one screen against the subset
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,31 @@
+From 6c2d188ca7a1bbb5be618932c6d53abab87d28c2 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Publish nightly builds
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ .github/workflows/nightly.yml | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+ create mode 100644 .github/workflows/nightly.yml
+
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+new file mode 100644
+index 0000000..3f762b3
+--- /dev/null
++++ b/.github/workflows/nightly.yml
+@@ -0,0 +1,11 @@
++name: nightly
++on:
++  pull_request_target:
++jobs:
++  build:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++        with:
++          ref: ${{ github.event.pull_request.head.sha }}
++      - run: make ci
+-- 
+2.54.0 (Apple Git-157)
+

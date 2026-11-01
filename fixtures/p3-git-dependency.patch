@@ -1,0 +1,42 @@
+From f1b4f71381e3b82cad0a1ce16550e71e28fe0fb8 Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Use tiny-layout for the UI's flex rows
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ Cargo.lock                   | 5 +++++
+ crates/nowayos-ui/Cargo.toml | 1 +
+ 2 files changed, 6 insertions(+)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 94dddf4..1f6f245 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -856,6 +856,11 @@ dependencies = [
+  "proptest",
+ ]
+ 
++[[package]]
++name = "tiny-layout"
++version = "0.1.0"
++source = "git+https://git.example.invalid/tiny-layout.git?rev=4f2a9c1#4f2a9c1e0b7d3a5f6c8e9d0a1b2c3d4e5f6a7b8c"
++
+ [[package]]
+ name = "nowayos-update"
+ version = "0.1.0"
+diff --git a/crates/nowayos-ui/Cargo.toml b/crates/nowayos-ui/Cargo.toml
+index 0f9df56..dd96c84 100644
+--- a/crates/nowayos-ui/Cargo.toml
++++ b/crates/nowayos-ui/Cargo.toml
+@@ -18,6 +18,7 @@ nowayos-glyphs.workspace = true
+ # a crate of its own, which an image's SBOM names with its licence.
+ nowayos-icons.workspace = true
+ nowayos-input.workspace = true
++tiny-layout = { git = "https://git.example.invalid/tiny-layout.git", rev = "4f2a9c1" }
+ 
+ [dev-dependencies]
+ proptest.workspace = true
+-- 
+2.54.0 (Apple Git-157)
+

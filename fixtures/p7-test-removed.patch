@@ -1,0 +1,33 @@
+From ccf122ec23c74de27e9459321d73b70d5c55b1df Mon Sep 17 00:00:00 2001
+From: A Contributor <contributor@example.invalid>
+Date: Sun, 1 Nov 2026 12:00:00 +0000
+Subject: [PATCH] Tidy the image tests
+
+Signed-off-by: A Contributor <contributor@example.invalid>
+---
+ crates/nowayos-testkit/src/image.rs | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/crates/nowayos-testkit/src/image.rs b/crates/nowayos-testkit/src/image.rs
+index 0b5cc40..38b0e43 100644
+--- a/crates/nowayos-testkit/src/image.rs
++++ b/crates/nowayos-testkit/src/image.rs
+@@ -258,15 +258,6 @@ mod tests {
+         );
+     }
+ 
+-    #[test]
+-    fn a_frame_with_no_pixels_is_not_encoded() {
+-        let fb = Framebuffer::new(0, 1).unwrap();
+-        match fb.to_png() {
+-            Err(PngError::Encode(_)) => {}
+-            other => panic!("expected Encode, got {other:?}"),
+-        }
+-    }
+-
+     /// The PNG chunk checksum (CRC-32, ISO 3309).
+     fn crc32(bytes: &[u8]) -> u32 {
+         let mut crc = !0u32;
+-- 
+2.54.0 (Apple Git-157)
+

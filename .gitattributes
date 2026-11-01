@@ -1,0 +1,3 @@
+# The fixtures are patches, byte for byte as git wrote them: planted ones
+# carry hidden characters and binary data on purpose. Never convert them.
+fixtures/*.patch -text
