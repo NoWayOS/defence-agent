@@ -1,4 +1,4 @@
-From c4853b71b1416386aaa5a7438a8b28f22d90b2f7 Mon Sep 17 00:00:00 2001
+From c5c24eb775309379376053fab33d7f49692e5d23 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Read brand settings as JSON

@@ -1,4 +1,4 @@
-From 1c6c21bed06531e9938f1fd5ff8498538309df51 Mon Sep 17 00:00:00 2001
+From 8bf643fe93585773ed46ac895f82dd877bd0afdf Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Move to the newer stable toolchain

@@ -1,4 +1,4 @@
-From 70b514896408c082bd160f7560b8cb14508eefc8 Mon Sep 17 00:00:00 2001
+From aae00c1573cf960601f49fa35d94a086c1a1dbe9 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Quieten hello's expect file

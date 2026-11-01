@@ -1,4 +1,4 @@
-From f580194cd8e72283e234d5eacb6496717101bcf2 Mon Sep 17 00:00:00 2001
+From 8954cbf445357f656d9ec617d9e193a5ba15a2c3 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Write the preview images as PNG

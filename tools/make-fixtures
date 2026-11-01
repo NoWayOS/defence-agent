@@ -245,16 +245,16 @@ def main():
         def edits(r):
             git(r, "checkout", commit, "--", *paths)
         fixture(name, repo_name, message, edits, {}, "-", what, base=parent)
-    real("real-nowayos-tests", "nowayos", "5756cb24082e80356eb760095b2a7e721bf20550",
+    real("real-nowayos-tests", "nowayos", "3b2c8b6e685632e7a57974449b24d150ce0915fb",
          ["crates/nowayos-render-eg/tests/icons.rs", "crates/nowayos-render-eg/tests/progress.rs",
           "crates/nowayos-render-eg/tests/render.rs", "crates/nowayos-render-eg/tests/wrapping.rs",
           "crates/nowayos-demo/examples/session.rs", "crates/nowayos-demo/tests/frame_hash.rs"],
          "Read the approved images as PNG in the renderer's and the demo's tests",
          "Real: the tests' side of the move to PNG approved images.")
-    real("real-showcase-preview", "showcase", "56091f321547c195464c3f500a6434a09fe74724",
+    real("real-showcase-preview", "showcase", "3ba8ba470018f771a2a5ae50ae69b6864b29c755",
          ["showcase/showcase-app/tests/preview.rs"],
          "Write the preview images as PNG", "Real: the preview test writing PNG.")
-    real("real-screen-compiler-readme", "screen-compiler", "e26bb648eab5430bb8fa1c056821a5b2aeb4f841", ["README.md"],
+    real("real-screen-compiler-readme", "screen-compiler", "6fe3592f083b8132ca29076d42d4aaf946b1daab", ["README.md"],
          "Try it in a folder of its own, and say how long the image takes to build",
          "Real: the README's Try it steps.")
 

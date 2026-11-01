@@ -1,4 +1,4 @@
-From e8d7b0ad48b89c140d6d83c88094498051aa385b Mon Sep 17 00:00:00 2001
+From fd097e2c5cec1d880bd192639b9f76ee75209614 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Redraw the welcome screen

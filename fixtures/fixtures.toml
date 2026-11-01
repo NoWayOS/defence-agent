@@ -8,7 +8,7 @@
 [[fixture]]
 patch = "p1-not-signed-off.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH8"
 what = "A commit with no Signed-off-by line for its author."
 expect = { P1 = "fail" }
@@ -16,7 +16,7 @@ expect = { P1 = "fail" }
 [[fixture]]
 patch = "p2-gitattributes.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH2, TH4"
 what = "Hides every crate's changes from a reviewer's diff: a gate-owned file."
 expect = { P2 = "maintainer" }
@@ -24,7 +24,7 @@ expect = { P2 = "maintainer" }
 [[fixture]]
 patch = "p3-git-dependency.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH3"
 what = "A git dependency at a commit NoWayOS does not pin."
 expect = { P2 = "maintainer", P3 = "fail" }
@@ -32,7 +32,7 @@ expect = { P2 = "maintainer", P3 = "fail" }
 [[fixture]]
 patch = "p4-build-script.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH1"
 what = "A build script: code that runs when the crate is built."
 expect = { P4 = "maintainer" }
@@ -40,7 +40,7 @@ expect = { P4 = "maintainer" }
 [[fixture]]
 patch = "p5-trojan-source.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH4"
 what = "Bidirectional controls in a comment, so the code reads differently from how it compiles."
 expect = { P5 = "fail" }
@@ -48,7 +48,7 @@ expect = { P5 = "fail" }
 [[fixture]]
 patch = "p6-binary-file.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH4"
 what = "A binary file outside the folders OWNERS.md lists."
 expect = { P6 = "fail" }
@@ -56,7 +56,7 @@ expect = { P6 = "fail" }
 [[fixture]]
 patch = "p6-binary-as-text.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH4"
 what = "Bytes that are not text, in a file git diffs as text because it holds no NUL byte."
 expect = { P5 = "fail", P6 = "fail" }
@@ -64,7 +64,7 @@ expect = { P5 = "fail", P6 = "fail" }
 [[fixture]]
 patch = "p7-test-removed.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH2"
 what = "A test removed inside a tidy-up."
 expect = { P7 = "maintainer" }
@@ -72,7 +72,7 @@ expect = { P7 = "maintainer" }
 [[fixture]]
 patch = "p8-lint-allowed.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH2"
 what = "A lint the baseline denies, allowed."
 expect = { P8 = "maintainer" }
@@ -80,7 +80,7 @@ expect = { P8 = "maintainer" }
 [[fixture]]
 patch = "p8-forbidden-line-removed.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH2"
 what = "A forbidden line removed, so a panic would no longer fail the test."
 expect = { P2 = "maintainer", P8 = "maintainer" }
@@ -88,7 +88,7 @@ expect = { P2 = "maintainer", P8 = "maintainer" }
 [[fixture]]
 patch = "p8-unsafe-allowed.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH2"
 what = "An entry added to the approved-unsafe list."
 expect = { P2 = "maintainer", P8 = "maintainer" }
@@ -96,7 +96,7 @@ expect = { P2 = "maintainer", P8 = "maintainer" }
 [[fixture]]
 patch = "p9-toolchain-moved.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH10"
 what = "The pinned toolchain moved."
 expect = { P2 = "maintainer", P9 = "maintainer" }
@@ -104,7 +104,7 @@ expect = { P2 = "maintainer", P9 = "maintainer" }
 [[fixture]]
 patch = "p10-workflow-added.patch"
 repo = "nowayos"
-base = "5756cb24082e80356eb760095b2a7e721bf20550"
+base = "3b2c8b6e685632e7a57974449b24d150ce0915fb"
 threat = "TH10"
 what = "A workflow that would run a pull request's own code with the repository's secrets."
 expect = { P2 = "maintainer", P10 = "maintainer" }
@@ -112,7 +112,7 @@ expect = { P2 = "maintainer", P10 = "maintainer" }
 [[fixture]]
 patch = "p3-new-crate.patch"
 repo = "showcase"
-base = "56091f321547c195464c3f500a6434a09fe74724"
+base = "3ba8ba470018f771a2a5ae50ae69b6864b29c755"
 threat = "TH3"
 what = "A new crate whose name imitates a better-known one."
 expect = { P2 = "maintainer", P3 = "maintainer" }
@@ -120,7 +120,7 @@ expect = { P2 = "maintainer", P3 = "maintainer" }
 [[fixture]]
 patch = "p5-look-alike-identifier.patch"
 repo = "showcase"
-base = "56091f321547c195464c3f500a6434a09fe74724"
+base = "3ba8ba470018f771a2a5ae50ae69b6864b29c755"
 threat = "TH4"
 what = "An identifier with a Cyrillic letter that looks like a Latin one."
 expect = { P5 = "fail" }
@@ -128,7 +128,7 @@ expect = { P5 = "fail" }
 [[fixture]]
 patch = "p7-test-ignored.patch"
 repo = "showcase"
-base = "56091f321547c195464c3f500a6434a09fe74724"
+base = "3ba8ba470018f771a2a5ae50ae69b6864b29c755"
 threat = "TH2"
 what = "A test switched off."
 expect = { P7 = "maintainer" }
@@ -136,7 +136,7 @@ expect = { P7 = "maintainer" }
 [[fixture]]
 patch = "p8-grant-added.patch"
 repo = "showcase"
-base = "56091f321547c195464c3f500a6434a09fe74724"
+base = "3ba8ba470018f771a2a5ae50ae69b6864b29c755"
 threat = "TH2"
 what = "A grant added to a system."
 expect = { P2 = "maintainer", P8 = "maintainer" }
@@ -144,7 +144,7 @@ expect = { P2 = "maintainer", P8 = "maintainer" }
 [[fixture]]
 patch = "p9-nowayos-rev-unknown.patch"
 repo = "showcase"
-base = "56091f321547c195464c3f500a6434a09fe74724"
+base = "3ba8ba470018f771a2a5ae50ae69b6864b29c755"
 threat = "TH10"
 what = "nowayos.rev moved to a commit not on NoWayOS's main."
 expect = { P2 = "maintainer", P9 = "fail" }
@@ -152,7 +152,7 @@ expect = { P2 = "maintainer", P9 = "fail" }
 [[fixture]]
 patch = "p4-procedural-macro.patch"
 repo = "screen-compiler"
-base = "285faa5d9d86bfc3e9e553434f47776ce74c0347"
+base = "e945c3b4fd2d913886a19136c086cde6bad830ac"
 threat = "TH1"
 what = "A procedural macro crate: code the compiler runs."
 expect = { P4 = "maintainer" }
@@ -160,7 +160,7 @@ expect = { P4 = "maintainer" }
 [[fixture]]
 patch = "p6-approved-image-changed.patch"
 repo = "screen-compiler"
-base = "285faa5d9d86bfc3e9e553434f47776ce74c0347"
+base = "e945c3b4fd2d913886a19136c086cde6bad830ac"
 threat = "TH2, TH4"
 what = "An approved image changed: allowed where OWNERS.md lists, but a person looks."
 expect = { P2 = "maintainer", P6 = "maintainer" }
@@ -168,7 +168,7 @@ expect = { P2 = "maintainer", P6 = "maintainer" }
 [[fixture]]
 patch = "real-nowayos-tests.patch"
 repo = "nowayos"
-base = "680cdf9e17b151d0295f7c45487035e8ff785a03"
+base = "92f3500be5e4c6a4ca8ae28205d4cedb5a1d4d38"
 threat = "-"
 what = "Real: the tests' side of the move to PNG approved images."
 expect = {  }
@@ -176,7 +176,7 @@ expect = {  }
 [[fixture]]
 patch = "real-showcase-preview.patch"
 repo = "showcase"
-base = "820872cd3c4255948ccc931036416d0f16af4589"
+base = "1731922bed743c321e97e89cda1b40f2001cdbbf"
 threat = "-"
 what = "Real: the preview test writing PNG."
 expect = {  }
@@ -184,7 +184,7 @@ expect = {  }
 [[fixture]]
 patch = "real-screen-compiler-readme.patch"
 repo = "screen-compiler"
-base = "45df9f7513b9afa410b92e6c8186582c867933d4"
+base = "67d2ef748e9b0a2895b191b38d278f0d3466d0bc"
 threat = "-"
 what = "Real: the README's Try it steps."
 expect = {  }

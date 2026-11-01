@@ -1,4 +1,4 @@
-From 1d5b90b5bb3f7e2e2f1f5fe4916f2d3ade2b0968 Mon Sep 17 00:00:00 2001
+From 1973eba81fad6821c507e38d755982817f76d7bb Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Say what the bounded crate is for in one line

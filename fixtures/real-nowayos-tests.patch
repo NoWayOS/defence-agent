@@ -1,4 +1,4 @@
-From aa57b049f815f99e5aa72a1676e337b623c2b677 Mon Sep 17 00:00:00 2001
+From fa07a60c1f2b5427a8d8d0520d6e4527d80b3fe0 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Read the approved images as PNG in the renderer's and the
