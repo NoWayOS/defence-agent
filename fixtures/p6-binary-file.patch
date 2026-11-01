@@ -1,4 +1,4 @@
-From fbe6ce1b0833d9967bc79654e5b665d95135d606 Mon Sep 17 00:00:00 2001
+From 50b253cfcdd8dfb4ac384d338fa99d185e598bf6 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Add the UI's precomputed colour table

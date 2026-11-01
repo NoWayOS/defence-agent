@@ -1,4 +1,4 @@
-From adad44b2e219248c9786c61120d524a487e77de0 Mon Sep 17 00:00:00 2001
+From 0d74c75995ee1ff96e7eccb4016ecafe7c9bd2e2 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Note who may skip the idle timeout

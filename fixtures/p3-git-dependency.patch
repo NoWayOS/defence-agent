@@ -1,4 +1,4 @@
-From ee2fc3cca0f449131c750057d2bc967874ae0e05 Mon Sep 17 00:00:00 2001
+From fb767a054234f535cefc38f33781f4f752cee538 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Use tiny-layout for the UI's flex rows

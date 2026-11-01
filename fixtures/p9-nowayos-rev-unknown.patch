@@ -1,4 +1,4 @@
-From 3872ce3152646471657fda0cc22bcc43dc4a34b9 Mon Sep 17 00:00:00 2001
+From fceb74abc47d95dfcd45cabfb9459858c541b1e2 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Build against the faster NoWayOS
@@ -9,11 +9,11 @@ Signed-off-by: A Contributor <contributor@example.invalid>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/nowayos.rev b/nowayos.rev
-index 5277298..bbd98bc 100644
+index b1d4209..bbd98bc 100644
 --- a/nowayos.rev
 +++ b/nowayos.rev
 @@ -1 +1 @@
--3b2c8b6e685632e7a57974449b24d150ce0915fb
+-dba629ac451d304f1f67cc6b214e8c86a854e3ad
 +0123456789abcdef0123456789abcdef01234567
 -- 
 2.54.0 (Apple Git-157)

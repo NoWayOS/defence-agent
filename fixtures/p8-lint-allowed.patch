@@ -1,4 +1,4 @@
-From 04a59de7c1e7249a76fb2ce11cd73a19c5ed2438 Mon Sep 17 00:00:00 2001
+From 4b0ca3dca36a73817b82bfe31a87689388dfb5ac Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Let the testkit index its pixels directly

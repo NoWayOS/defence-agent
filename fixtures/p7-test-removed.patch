@@ -1,4 +1,4 @@
-From a0bd4ede210c02cfa65458176eb0d9d84bfbbcea Mon Sep 17 00:00:00 2001
+From c57a5cc0db141db12b344a1fd9b34ae4f2f95ac6 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Tidy the image tests

@@ -1,4 +1,4 @@
-From c9ea53d4e5e1297eb13bc3e68047e41457966a70 Mon Sep 17 00:00:00 2001
+From 8af82da96050710e32e9442d86d26b8daf3e0444 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Allow unsafe in the input crate for speed

@@ -1,4 +1,4 @@
-From fd658d60b342ef3e083b87a20d83bf5eb9fbd28f Mon Sep 17 00:00:00 2001
+From 4a0e036389600926bfbbd57aa663cf541265ef6f Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Generate the UI's colour table at build time

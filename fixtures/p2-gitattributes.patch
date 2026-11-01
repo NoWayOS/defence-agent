@@ -1,4 +1,4 @@
-From 67ca96cbc590bac315bb40d2cebf6be77eddb322 Mon Sep 17 00:00:00 2001
+From 66994cb1b10e78e1fda7d12ea835529a697622f7 Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Mark crate sources as generated

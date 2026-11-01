@@ -1,4 +1,4 @@
-From 41091a93f2bf5c672600d7d2d98f0f72fafdd6e0 Mon Sep 17 00:00:00 2001
+From c9c596576e3a552e2d04ff013ac5b92f886d5c5a Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Skip the slow preview test

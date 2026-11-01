@@ -1,4 +1,4 @@
-From 8780af403ee81f37bd0d34afde620da7c6dc0f07 Mon Sep 17 00:00:00 2001
+From 314f29c5e6b8c9d0cd3a83d39f13bc93b02e055d Mon Sep 17 00:00:00 2001
 From: A Contributor <contributor@example.invalid>
 Date: Sun, 1 Nov 2026 12:00:00 +0000
 Subject: [PATCH] Let the kiosk reach the network directly
