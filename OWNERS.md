@@ -6,7 +6,10 @@ gates rather than to the code they judge.
 ## Who may change a gate
 
 - **The Product Owner decides** every change to a gate: this repository, a
-  gate-owned path below, or a tool a gate runs.
+  gate-owned path below, or a tool a gate runs. The Product Owner is the open
+  repositories' maintainer and copyright holder; reach them through an issue
+  or a pull request here, and with a vulnerability, privately, as SECURITY.md
+  says.
 - **Anyone may propose one**, by a pull request or an issue. A pull request that
   touches a gate-owned path stops at P2 until the Product Owner has read it.
 - **No change judges itself.** A pull request that changes a gate is judged by

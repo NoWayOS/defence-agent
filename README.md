@@ -3,12 +3,15 @@
 The security gates every contribution to NoWayOS's open repositories must pass,
 written down in one place, and the agent that runs them.
 
-NoWayOS is a secure station built on seL4, Microkit and Rust. Its open
+NoWayOS is a Single Purpose OS built on seL4, Microkit and Rust. Its open
 repositories are NoWayOS, Screen Compiler and the Showcase. Their gates - the checks a change must pass before it merges -
 used to live only inside the repositories they guard, so one pull request could
 weaken a gate and slip a change past it in the same commit. They are defined
 here instead, where a pull request to a product cannot reach them, and in
-public, so a contributor can run the same gates before asking anyone to review.
+public, so a contributor can read every gate before asking anyone to review.
+Today a contributor can run the build gates (stage 4): each repository's
+`make ci`. The triage, patch and review stages are written down, and their
+agent and tools come next; GATES.md says which gates run yet.
 
 ## The principles
 
@@ -78,7 +81,7 @@ propose a change to it like any other gate.
 ## Licence
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT licence](LICENSE-MIT), at your option. Copyright Jon Anthony.
+[MIT licence](LICENSE-MIT), at your option.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this work by you, as defined in the Apache-2.0 licence, shall

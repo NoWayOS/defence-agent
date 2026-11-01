@@ -4,8 +4,8 @@ What a contribution to an open NoWayOS repository might try, on purpose or by
 mistake. Each threat has an ID that [GATES.md](GATES.md) cites; the last column
 names the gates that answer it.
 
-NoWayOS is a secure station: what it builds runs where people type things that
-matter. So we assume a pull request may come from someone persistent, capable and
+NoWayOS is a Single Purpose OS: what it builds runs where people type things
+that matter. So we assume a pull request may come from someone persistent, capable and
 hostile, or from a tool that writes plausible code nobody has checked. Neither
 is judged by who sent it.
 
