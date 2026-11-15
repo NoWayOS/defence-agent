@@ -62,6 +62,17 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
   files
 - `**/src/proofs.rs`, `fuzz/fuzz_targets/**`
 
+### Starter (`starter`)
+
+- `setup`: it decides what `make setup` fetches, and from where
+- `nowayos.rev`, `screen-compiler.rev`
+- `app/Makefile`
+- `app/Cargo.toml`, `app/Cargo.lock`, `app/pds/Cargo.toml`, `app/pds/Cargo.lock`
+- `app/tools/**`: `check-pins`, `new-screen` and `rename`
+- `app/systems/**`: the system description and its `.grants`, `.expect` and
+  `.qmp` files and approved screen
+- `.vscode/**`: an editor can run what a task file names
+
 ### Defence Agent (`defence-agent`)
 
 - Everything.
@@ -81,6 +92,7 @@ P6 fails any other binary file. These go to a maintainer, who looks at each.
 - Screen Compiler: approved images in `contract-check/golden/`.
 - Showcase: approved images in `systems/` and
   `showcase/showcase-app/tests/snapshots/`; the README's picture in `assets/`.
+- Starter: the approved screen in `app/systems/`.
 
 ## Policy files
 

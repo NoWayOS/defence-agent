@@ -33,9 +33,9 @@ OWNED, BINARY = check_patch.read_owners(OWNERS)
 SHORT = {check_patch.FAIL: "fail", check_patch.MAINTAINER: "maintainer"}
 
 
-def results(text, repo="nowayos", nowayos=None, ref="main"):
+def results(text, repo="nowayos", nowayos=None, ref="main", screen_compiler=None):
     """{gate: 'fail' | 'maintainer'} for every gate that does not pass."""
-    report, _commits, _files = check_patch.check(text, OWNED, BINARY, repo, nowayos, ref)
+    report, _commits, _files = check_patch.check(text, OWNED, BINARY, repo, nowayos, ref, screen_compiler)
     return {gate: SHORT[report.result(gate)] for gate in check_patch.GATES
             if report.result(gate) != check_patch.PASS}
 
@@ -139,6 +139,9 @@ class Owners(unittest.TestCase):
         self.assertIn("crates/nowayos-picture-decode/tests/pictures/", BINARY["nowayos"])
         self.assertIn("assets/", BINARY["nowayos"])
         self.assertEqual(BINARY["showcase"], ["systems/", "showcase/showcase-app/tests/snapshots/", "assets/"])
+        for path in ("setup", "nowayos.rev", "screen-compiler.rev", "app/Makefile", "app/systems/**"):
+            self.assertIn(path, self.patterns("starter"))
+        self.assertEqual(BINARY["starter"], ["app/systems/"])
 
     def test_globs(self):
         regex = check_patch.glob_regex
@@ -245,6 +248,20 @@ class Pins(unittest.TestCase):
         self.assertEqual(results(self.rev(self.off_main), "showcase", self.repo)["P9"], "fail")
         self.assertEqual(results(self.rev("f" * 40), "showcase", self.repo)["P9"], "fail")
         self.assertEqual(results(self.rev(self.on_main), "showcase")["P9"], "maintainer", "no clone: a person checks")
+
+    def test_the_starters_two_pins(self):
+        def rev(name, *added):
+            return commit(diff(name, removed=["0" * 40], added=list(added)))
+        both = {"P2": "maintainer", "P9": "maintainer"}
+        self.assertEqual(results(rev("nowayos.rev", self.on_main), "starter", self.repo), both)
+        self.assertEqual(results(rev("nowayos.rev", self.off_main), "starter", self.repo)["P9"], "fail")
+        self.assertEqual(results(rev("screen-compiler.rev", self.on_main), "starter", screen_compiler=self.repo), both)
+        self.assertEqual(results(rev("screen-compiler.rev", self.off_main), "starter",
+                                 screen_compiler=self.repo)["P9"], "fail")
+        self.assertEqual(results(rev("screen-compiler.rev", self.off_main), "starter", self.repo)["P9"], "maintainer",
+                         "a NoWayOS clone says nothing of Screen Compiler's commits")
+        self.assertEqual(results(rev("nowayos.rev", "# The commit this is built on.", self.on_main), "starter",
+                                 self.repo), both, "a comment is not a commit")
 
     def test_git_dependencies_against_the_pins(self):
         def lock(source):

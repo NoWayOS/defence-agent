@@ -7,11 +7,13 @@
 # may be hostile, so it can neither write there nor send anything out.
 #
 # make gates-check reads the open repositories' Makefiles from clones beside
-# this one: ../nowayos, ../screen-compiler and ../showcase. make check-patch
-# reads a pull request's patch as text, and ../nowayos for its pins.
+# this one: ../nowayos, ../screen-compiler, ../showcase and ../starter (whose
+# make ci is its app/Makefile's). make check-patch reads a pull request's
+# patch as text, and ../nowayos and ../screen-compiler for their pins.
 
 PYTHON ?= python3
-GATES_REPOS := nowayos=../nowayos screen-compiler=../screen-compiler showcase=../showcase defence-agent=.
+GATES_REPOS := nowayos=../nowayos screen-compiler=../screen-compiler showcase=../showcase \
+	starter=../starter/app defence-agent=.
 
 -include ../nowayos/tools/make/container.mk
 
@@ -45,7 +47,8 @@ gates-check:
 
 check-patch:
 	@test -n "$(REPO)" && test -n "$(PATCH)" || { echo "error: name both: make check-patch REPO=NAME PATCH=FILE" >&2; exit 2; }
-	$(PYTHON) tools/check-patch --owners OWNERS.md --repo $(REPO) --nowayos ../nowayos $(PATCH)
+	$(PYTHON) tools/check-patch --owners OWNERS.md --repo $(REPO) --nowayos ../nowayos \
+		--screen-compiler ../screen-compiler $(PATCH)
 
 ci: ci-local
 else ifdef IN_CONTAINER

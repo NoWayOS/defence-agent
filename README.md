@@ -4,7 +4,8 @@ The security gates every contribution to NoWayOS's open repositories must pass,
 written down in one place, and the agent that runs them.
 
 NoWayOS is a Single Purpose OS built on seL4, Microkit and Rust. Its open
-repositories are NoWayOS, Screen Compiler and the Showcase. Their gates - the checks a change must pass before it merges -
+repositories are NoWayOS, Screen Compiler, the Showcase and the starter, the
+application new ones begin from. Their gates - the checks a change must pass before it merges -
 used to live only inside the repositories they guard, so one pull request could
 weaken a gate and slip a change past it in the same commit. They are defined
 here instead, where a pull request to a product cannot reach them, and in
