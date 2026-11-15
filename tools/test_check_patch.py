@@ -136,6 +136,9 @@ class Owners(unittest.TestCase):
         self.assertEqual(self.patterns("defence-agent"), ["**"])
         self.assertIn("contract-check/golden/", BINARY["screen-compiler"])
         self.assertIn("crates/nowayos-demo/session/", BINARY["nowayos"])
+        self.assertIn("crates/nowayos-picture-decode/tests/pictures/", BINARY["nowayos"])
+        self.assertIn("assets/", BINARY["nowayos"])
+        self.assertEqual(BINARY["showcase"], ["systems/", "showcase/showcase-app/tests/snapshots/", "assets/"])
 
     def test_globs(self):
         regex = check_patch.glob_regex

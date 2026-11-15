@@ -71,11 +71,16 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
 P6 fails any other binary file. These go to a maintainer, who looks at each.
 
 - NoWayOS: approved images in `crates/nowayos-demo/session/`,
-  `crates/nowayos-render-eg/tests/snapshots/` and `systems/`; the pinned font
-  in `crates/nowayos-glyphs/fonts/`; the generated atlases and icon masks in
-  `crates/nowayos-glyphs/src/atlas/` and `crates/nowayos-icons/src/masks/`,
-  which B14 makes again and compares.
+  `crates/nowayos-render-eg/tests/snapshots/` and `systems/`; the pictures the
+  picture decoder is tested with, in
+  `crates/nowayos-picture-decode/tests/pictures/`, and the example pictures in
+  `crates/nowayos-pictures/pictures/`; the README's picture in `assets/`; the
+  pinned font in `crates/nowayos-glyphs/fonts/`; the generated atlases and icon
+  masks in `crates/nowayos-glyphs/src/atlas/` and
+  `crates/nowayos-icons/src/masks/`, which B14 makes again and compares.
 - Screen Compiler: approved images in `contract-check/golden/`.
+- Showcase: approved images in `systems/` and
+  `showcase/showcase-app/tests/snapshots/`; the README's picture in `assets/`.
 
 ## Policy files
 
