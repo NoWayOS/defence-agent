@@ -141,6 +141,7 @@ class Owners(unittest.TestCase):
         self.assertIn("contract-check/golden/", BINARY["screen-compiler"])
         self.assertIn("crates/nowayos-demo/session/", BINARY["nowayos"])
         self.assertIn("crates/nowayos-picture-decode/tests/pictures/", BINARY["nowayos"])
+        self.assertIn("crates/nowayos-pictures/src/samples/", BINARY["nowayos"])
         self.assertIn("assets/", BINARY["nowayos"])
         self.assertEqual(BINARY["showcase"], ["systems/", "showcase/showcase-app/tests/snapshots/", "assets/"])
         for path in ("setup", "nowayos.rev", "screen-compiler.rev", "app/Makefile", "app/systems/**",

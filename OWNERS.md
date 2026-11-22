@@ -94,7 +94,8 @@ P6 fails any other binary file. These go to a maintainer, who looks at each.
   `crates/nowayos-pictures/pictures/`; the README's picture in `assets/`; the
   pinned font in `crates/nowayos-glyphs/fonts/`; the generated atlases and icon
   masks in `crates/nowayos-glyphs/src/atlas/` and
-  `crates/nowayos-icons/src/masks/`, which B14 makes again and compares.
+  `crates/nowayos-icons/src/masks/` and the generated pictures in
+  `crates/nowayos-pictures/src/samples/`, which B14 makes again and compares.
 - Screen Compiler: approved images in `contract-check/golden/`.
 - Showcase: approved images in `systems/` and
   `showcase/showcase-app/tests/snapshots/`; the README's picture in `assets/`.
