@@ -154,7 +154,7 @@ class Owners(unittest.TestCase):
 
     def test_an_unknown_repository_is_an_error(self):
         with self.assertRaises(check_patch.InputError):
-            check_patch.check(commit(diff("a", added=["b"])), OWNED, BINARY, "pathways")
+            check_patch.check(commit(diff("a", added=["b"])), OWNED, BINARY, "no-such-repo")
 
 
 class Gates(unittest.TestCase):
