@@ -74,7 +74,7 @@ real past changes that pass them all; `make test` checks every one.
 | P8 | Policies not widened | TH2 | No entry added to an allowlist, baseline, `deny.toml` exception or `secrets-allow.toml`; no `#[allow]` or `#[expect]` added; no forbidden (`!`) line removed from an `.expect` file; no grant added to a `.grants` file | Defence Agent `tools/` | Maintainer | N, SC, S, ST |
 | P9 | Pins kept | TH10 | `nowayos.rev`, `screen-compiler.rev`, every `rust-toolchain.toml`, the dev image's Containerfile and package list, and every lock file's sources unchanged; a `nowayos.rev` or `screen-compiler.rev` naming a commit not on that repository's main fails | Defence Agent `tools/` | Maintainer, Fails | N, SC, S, ST |
 | P10 | CI files | TH10 | Nothing under `.github/` or any other CI configuration changed | Defence Agent `tools/` | Maintainer | N, SC, S, ST, DA |
-| P11 | Secrets and private terms | TH9 | No key or credential, and no term from the private term list, in any file or commit message of the patch | NoWayOS `tools/secrets-scan` and `tools/publication-scan`; the term list is supplied at run time and never committed | Fails | N, SC, S, ST, DA |
+| P11 | Secrets and private terms | TH9 | No key or credential, no term from the private term list, and no citation of a private story, decision, risk, known issue or ADR (publication-scan's record-reference), in any file or commit message of the patch | NoWayOS `tools/secrets-scan` and `tools/publication-scan`; the term list is supplied at run time and never committed | Fails | N, SC, S, ST, DA |
 
 ## Stage 3: Review
 
