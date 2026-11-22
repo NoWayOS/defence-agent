@@ -55,6 +55,7 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
 
 - `contract-check/**`: the check that every generated screen builds against
   NoWayOS and draws as approved, with its approved images (`contract-check/golden/`)
+- `tools/**`: the screens tool, which the starter's check that its screens convert as checked in runs
 
 ### Showcase (`showcase`)
 

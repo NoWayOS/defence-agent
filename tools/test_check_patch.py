@@ -132,6 +132,7 @@ class Owners(unittest.TestCase):
         self.assertIn("tools/**", self.patterns("nowayos"))
         self.assertNotIn("baseline.toml", self.patterns("nowayos"), "only what a bullet names before its colon")
         self.assertIn("contract-check/**", self.patterns("screen-compiler"))
+        self.assertIn("tools/**", self.patterns("screen-compiler"))
         self.assertIn("nowayos.rev", self.patterns("showcase"))
         for path in ("pds/Cargo.toml", "pds/Cargo.lock", "fuzz/Cargo.toml", "fuzz/Cargo.lock"):
             self.assertIn(path, self.patterns("nowayos"))
