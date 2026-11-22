@@ -133,13 +133,17 @@ class Owners(unittest.TestCase):
         self.assertNotIn("baseline.toml", self.patterns("nowayos"), "only what a bullet names before its colon")
         self.assertIn("contract-check/**", self.patterns("screen-compiler"))
         self.assertIn("nowayos.rev", self.patterns("showcase"))
+        for path in ("pds/Cargo.toml", "pds/Cargo.lock", "fuzz/Cargo.toml", "fuzz/Cargo.lock"):
+            self.assertIn(path, self.patterns("nowayos"))
+            self.assertIn(path, self.patterns("showcase"))
         self.assertEqual(self.patterns("defence-agent"), ["**"])
         self.assertIn("contract-check/golden/", BINARY["screen-compiler"])
         self.assertIn("crates/nowayos-demo/session/", BINARY["nowayos"])
         self.assertIn("crates/nowayos-picture-decode/tests/pictures/", BINARY["nowayos"])
         self.assertIn("assets/", BINARY["nowayos"])
         self.assertEqual(BINARY["showcase"], ["systems/", "showcase/showcase-app/tests/snapshots/", "assets/"])
-        for path in ("setup", "nowayos.rev", "screen-compiler.rev", "app/Makefile", "app/systems/**"):
+        for path in ("setup", "nowayos.rev", "screen-compiler.rev", "app/Makefile", "app/systems/**",
+                     "app/Cargo.toml", "app/Cargo.lock", "app/pds/Cargo.toml", "app/pds/Cargo.lock"):
             self.assertIn(path, self.patterns("starter"))
         self.assertEqual(BINARY["starter"], ["app/systems/"])
 
@@ -158,6 +162,11 @@ class Owners(unittest.TestCase):
 
 
 class Gates(unittest.TestCase):
+    def test_a_lint_weakened_in_another_workspace_needs_a_maintainer(self):
+        text = commit(diff("pds/Cargo.toml", removed=['unwrap_used = "deny"'], added=['unwrap_used = "allow"']))
+        self.assertEqual(results(text), {"P2": "maintainer"})
+        self.assertEqual(results(text, repo="showcase"), {"P2": "maintainer"})
+
     def test_a_sign_off_must_be_the_authors(self):
         text = commit(diff("README.md", added=["x"]), signed=False).replace(
             "Why it changes.", "Why it changes.\n\nSigned-off-by: Someone Else <else@example.invalid>")

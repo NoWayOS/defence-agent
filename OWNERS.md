@@ -35,7 +35,8 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
 - `rust-toolchain.toml`, `**/rust-toolchain.toml`
 - `deny.toml`, `**/deny.toml`
 - `secrets-allow.toml`
-- `Cargo.toml` and `Cargo.lock` of each workspace
+- `Cargo.toml`, `Cargo.lock`: the root workspace's; a repository's other workspaces are listed in its
+  own section
 
 ### NoWayOS (`nowayos`)
 
@@ -43,6 +44,8 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
   (`tools/container/`) and the policy files - `baseline.toml`,
   `unsafe-allowlist.toml`, `grant-rules.toml`, `sel4-verification.toml`,
   `image-components.toml`, `initialiser-audit.toml`, `crypto-crates.txt`
+- `pds/Cargo.toml`, `pds/Cargo.lock`, `fuzz/Cargo.toml`, `fuzz/Cargo.lock`: the PD and fuzz
+  workspaces' manifests and locks
 - `pds/std-crates.txt`
 - `systems/**`: system descriptions and their `.grants`, `.expect`, `.qmp`
   files and approved screens
@@ -56,6 +59,8 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
 ### Showcase (`showcase`)
 
 - `nowayos.rev`
+- `pds/Cargo.toml`, `pds/Cargo.lock`, `fuzz/Cargo.toml`, `fuzz/Cargo.lock`: the PD and fuzz
+  workspaces' manifests and locks
 - `tools/**`: `check-nowayos-rev`, `check-quiet`, `kani-mutations.json` and the
   screens tool
 - `systems/**`: system descriptions and their `.grants`, `.expect` and `.qmp`
