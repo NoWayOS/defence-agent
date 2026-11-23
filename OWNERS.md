@@ -55,15 +55,15 @@ Owner (P2). `**` means anything below; `*` anything in one folder or name.
 
 - `contract-check/**`: the check that every generated screen builds against
   NoWayOS and draws as approved, with its approved images (`contract-check/golden/`)
-- `tools/**`: the screens tool, which the starter's check that its screens convert as checked in runs
+- `tools/**`: the screens tool, which the Showcase's and the starter's checks that their screens
+  convert as checked in run
 
 ### Showcase (`showcase`)
 
 - `nowayos.rev`
 - `pds/Cargo.toml`, `pds/Cargo.lock`, `fuzz/Cargo.toml`, `fuzz/Cargo.lock`: the PD and fuzz
   workspaces' manifests and locks
-- `tools/**`: `check-nowayos-rev`, `check-quiet`, `kani-mutations.json` and the
-  screens tool
+- `tools/**`: `check-nowayos-rev`, `check-quiet` and `kani-mutations.json`
 - `systems/**`: system descriptions and their `.grants`, `.expect` and `.qmp`
   files
 - `**/src/proofs.rs`, `fuzz/fuzz_targets/**`
