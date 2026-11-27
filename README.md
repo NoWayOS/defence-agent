@@ -5,11 +5,14 @@ written down in one place, and the agent that runs them.
 
 NoWayOS is a Single Purpose OS built on seL4, Microkit and Rust. Its open
 repositories are NoWayOS, Screen Compiler, the Showcase and the starter, the
-application new ones begin from. Their gates - the checks a change must pass before it merges -
-used to live only inside the repositories they guard, so one pull request could
-weaken a gate and slip a change past it in the same commit. They are defined
-here instead, where a pull request to a product cannot reach them, and in
-public, so a contributor can read every gate before asking anyone to review.
+application new ones begin from. Their gates are the checks a change must pass
+before it merges. A gate kept only inside the repository it guards can be
+weakened by the pull request it judges, in the same commit. So the gates'
+definitions, their owners and the patch checks are here, where a pull request to
+a product cannot reach them, and in public, so a contributor can read every gate
+before asking anyone to review. The build gates' tools and policy files still
+sit in the repositories they guard, at gate-owned paths (OWNERS.md): a change to
+one stops at P2 for the Product Owner, and their master copies come here later.
 Today a contributor can run the build gates (stage 4), each repository's
 `make ci`, and a maintainer the patch checks (stage 2), `make check-patch`. The
 triage and review stages are written down, and Claude's review comes next;
