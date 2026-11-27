@@ -200,6 +200,9 @@ fails when this table and the Makefiles disagree.
 ## Cached results are not evidence
 
 `make ci` keeps the verdicts of Kani, Miri and fuzzing for inputs it has seen,
-and skips them next time. For a contributor's pull request those cached
-verdicts prove nothing: a cache the pull request could reach could lie. Stage 4
-runs them afresh, on a cache the pull request has never seen.
+and skips them next time. `make ci` also runs Kani, Miri and fuzzing only where
+a change since `origin/main` reaches; `make ci CI_SCOPE=full` runs every proof,
+mutant, Miri crate and fuzz target and uses no cached verdict. For a
+contributor's pull request those cached verdicts prove nothing: a cache the pull
+request could reach could lie. Stage 4 runs them afresh: `make ci` on an empty
+verdict store (`make forget-verdicts` first, or a fresh `CI_VERDICTS`).

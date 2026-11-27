@@ -39,4 +39,5 @@ can read these instructions, and whoever runs Claude here gets the same ones.
   maintainer, with the `file:line`, or the command and its output.
 - **Judge the change alone**, never its author's record or earlier pull requests.
 - **Cached results are not evidence.** Run stage 4's proofs, Miri and fuzzing
-  afresh.
+  afresh: `make ci` on an empty verdict store (`make forget-verdicts` first, or
+  a fresh `CI_VERDICTS`).
