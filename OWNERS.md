@@ -92,8 +92,7 @@ P6 fails any other binary file. These go to a maintainer, who looks at each.
   picture decoder is tested with, in
   `crates/nowayos-picture-decode/tests/pictures/`, and the example pictures in
   `crates/nowayos-pictures/pictures/`; the README's picture in `assets/`; the
-  pinned font in `crates/nowayos-glyphs/fonts/`; the generated atlases and icon
-  masks in `crates/nowayos-glyphs/src/atlas/` and
+  pinned font in `crates/nowayos-glyphs/fonts/`; the generated icon masks in
   `crates/nowayos-icons/src/masks/` and the generated pictures in
   `crates/nowayos-pictures/src/samples/`, which B14 makes again and compares.
 - Screen Compiler: approved images in `contract-check/golden/`.
